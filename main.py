@@ -5,6 +5,7 @@ from MotionPicture.audio_tools import AudioRawSamples
 from MotionPicture.shapes import *
 from audio_player import AudioPlayer
 from audio_jack import AudioJack
+from audio_raw_samples import AudioRawSamples
 
 import numpy, scipy, os, parser
 from scipy import interpolate
@@ -525,7 +526,7 @@ class SoundCurveViewer(ArrayViewer):
         #self.audio_player.clear_queue()
         if mode == "seamless-start" and self.curve_audio_raw_segment is None:
             return
-        if mode == "start":
+        if mode.find("start")>=0:
             if self.polygons:
                 self.samples.build_formulas_from_polygons(self.polygons)
             piano_key = PianoKey.get_key(name=self.piano_key_combo_box.get_value())
@@ -548,6 +549,7 @@ class SoundCurveViewer(ArrayViewer):
             if self.curve_audio_raw_segment:
                 self.audio_player.remove_segment(self.curve_audio_raw_segment)
             self.curve_audio_raw_segment = None
+            self.audio_player.clear_queue()
 
     def on_drawing_area_draw(self, widget, ctx):
         super(SoundCurveViewer, self).on_drawing_area_draw(widget, ctx)
@@ -707,7 +709,7 @@ class SoundGeneratorEditor(Gtk.Window):
         self.curve_audio_raw_segment = None
         self.show_all()
 
-        self.audio_player = AudioPlayer(1)
+        self.audio_player = AudioPlayer(2)
         self.audio_player.start()
 
         self.live_audio_player = AudioPlayer(1)
@@ -815,10 +817,11 @@ class SoundGeneratorEditor(Gtk.Window):
     def on_drawing_area_key_release(self, widget, event):
         ret = False
         if self.keyboard.control_key_pressed:
-            if event.string == "s":
+            if event.keyval == Gdk.KEY_s:
                 self.doc.save()
-            if event.string == "x":
+            if event.keyval == Gdk.KEY_x:
                 self.curve_viewer.delete_selected_point()
+                self.on_curve_modified()
             if event.keyval == Gdk.KEY_p:
                 self.piano_mode = not self.piano_mode
         if  self.piano_mode and not self.keyboard.is_control_shift_pressed():

@@ -168,13 +168,15 @@ class AudioJack(threading.Thread):
                 queue_output = None
 
             if output is None:
-                if waiting_time<self.period:
-                    waiting_time += .01
-                    time.sleep(.01)
-                    continue
-                else:
-                    waiting_time = 0
-                    output = self.blank_data
+                time.sleep(.01)
+                continue
+                #if waiting_time<self.period:
+                #    waiting_time += .01
+                #    time.sleep(.01)
+                #    continue
+                #else:
+                #    waiting_time = 0
+                #    output = self.blank_data
 
             if leftover is not None:
                 output = numpy.concatenate((leftover, output), axis=1)

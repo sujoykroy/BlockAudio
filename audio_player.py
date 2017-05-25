@@ -118,28 +118,28 @@ class AudioPlayer(threading.Thread):
                     old_segment, new_segment = self.segment_replace_queue.get()
                     start_at_size = audio_segment.get_start_at_size()
                     duration_size = audio_segment.get_duration_size()
-                    if self.t_size+buffer_size<start_at_size or \
-                       self.t_size>=start_at_size+duration_size:
-                        middle_segment = None
-                        new_segment.start_at_size = self.t_size
-                    else:
-                        current_time_size = self.t_size
-                        old_samples = old_segment.get_samples_in_between_size(
-                                    current_time_size, current_time_size+self.smoothing_size).copy()
-                        new_samples = new_segment.get_samples_in_between_size(
-                                    0, self.smoothing_size).copy()
-                        middle_samples = numpy.concatenate((old_samples, new_samples), axis=1)
-                        ts = numpy.arange(0, self.smoothing_size+middle_samples.shape[1])
-                        xs = numpy.concatenate((ts[:old_samples.shape[1]], ts[-new_samples.shape[1]:]))
-                        interpolator1 = interpolate.PchipInterpolator(xs, middle_samples[0, :])
+                    middle_segment = None
+                    if not self.loop:
+                        if self.t_size+buffer_size<start_at_size or \
+                           self.t_size>=start_at_size+duration_size:
+                            new_segment.start_at_size = self.t_size
+                        else:
+                            current_time_size = self.t_size
+                            old_samples = old_segment.get_samples_in_between_size(
+                                        current_time_size, current_time_size+self.smoothing_size).copy()
+                            new_samples = new_segment.get_samples_in_between_size(
+                                        0, self.smoothing_size).copy()
+                            middle_samples = numpy.concatenate((old_samples, new_samples), axis=1)
+                            ts = numpy.arange(0, self.smoothing_size+middle_samples.shape[1])
+                            xs = numpy.concatenate((ts[:old_samples.shape[1]], ts[-new_samples.shape[1]:]))
+                            interpolator1 = interpolate.PchipInterpolator(xs, middle_samples[0, :])
 
-                        middle_samples = interpolator1(ts)
-                        middle_samples = numpy.vstack((middle_samples, middle_samples))
-                        middle_segment = AudioRawSamples(middle_samples, self.sample_rate)
-                        middle_segment.start_at_size = self.t_size
-                        middle_segment.remove_after_end = True
-                        new_segment.start_at_size = self.t_size + ts.shape[0]
-
+                            middle_samples = interpolator1(ts)
+                            middle_samples = numpy.vstack((middle_samples, middle_samples))
+                            middle_segment = AudioRawSamples(middle_samples, self.sample_rate)
+                            middle_segment.start_at_size = self.t_size
+                            middle_segment.remove_after_end = True
+                            new_segment.start_at_size = self.t_size + ts.shape[0]
                     self.segment_lock.acquire()
                     if old_segment in self.audio_segments:
                         self.audio_segments.remove(old_segment)
@@ -147,6 +147,7 @@ class AudioPlayer(threading.Thread):
                         self.audio_segments.append(middle_segment)
                     if new_segment not in self.audio_segments:
                         self.audio_segments.append(new_segment)
+                    print new_segment.start_at_size
                     self.segment_lock.release()
                     self.compute_duration()
 
@@ -193,8 +194,29 @@ class AudioPlayer(threading.Thread):
 
                 self.t_size += buffer_size
 
-                while self.loop and self.t_size>=self.duration_size:
-                    self.t_size -= (self.duration_size-self.loop_start_at_size)
+
+                if self.loop == 2:
+                    s = 0
+                    self.segment_lock.acquire()
+                    while s<len(self.audio_segments):
+                        audio_segment = self.audio_segments[s]
+                        start_at_size = audio_segment.get_start_at_size()
+                        duration_size = audio_segment.get_duration_size()
+                        if self.t_size>start_at_size+duration_size:
+                            if hasattr(audio_segment, "remove_after_end") and \
+                                audio_segment.remove_after_end:
+                                self.audio_segments.remove(audio_segment)
+                                s -= 1
+                        s += 1
+                    self.segment_lock.release()
+                    self.compute_duration()
+
+                if self.duration_size>0:
+                    while self.loop and self.t_size>=self.duration_size:
+                        self.t_size -= (self.duration_size-self.loop_start_at_size)
+                else:
+                    self.t_size = 0
+
                 if active_count == 0:
                     final_samples = blank_data
                     break
@@ -228,24 +250,8 @@ class AudioPlayer(threading.Thread):
                 except Queue.Full:
                     pass
 
-            if self.loop == 2:
-                s = 0
-                self.segment_lock.acquire()
-                while s<len(self.audio_segments):
-                    audio_segment = self.audio_segments[s]
-                    start_at_size = audio_segment.get_start_at_size()
-                    duration_size = audio_segment.get_duration_size()
-                    if self.t_size>start_at_size+duration_size:
-                        if hasattr(audio_segment, "remove_after_end") and \
-                            audio_segment.remove_after_end:
-                            self.audio_segments.remove(audio_segment)
-                            s -= 1
-                    s += 1
-                self.segment_lock.release()
-                self.compute_duration()
 
-
-            time.sleep(max(.01, self.period-(time.time()-st)))
+            time.sleep(max(.001, self.period-(time.time()-st)))
         audio_jack = AudioJack.get_thread()
         if audio_jack:
             audio_jack.remove_audio_queue(self.audio_queue)
