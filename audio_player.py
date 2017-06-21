@@ -2,7 +2,7 @@ import threading, numpy, time, Queue
 from audio_jack import AudioJack
 from MotionPicture.audio_tools import AudioFFT
 from MotionPicture.audio_tools import FreqBand
-from MotionPicture.audio_tools import AudioRawSamples
+from audio_raw_samples import AudioRawSamples
 from scipy import interpolate
 
 class AudioPlayer(threading.Thread):
@@ -103,7 +103,7 @@ class AudioPlayer(threading.Thread):
                    final_samples.shape[1]<full_buffer_size) \
                                             and self.audio_segments:
                 joined_samples = None
-                buffer_size = min(self.buffer_size, self.duration_size-self.t_size)
+                buffer_size = int(min(self.buffer_size, self.duration_size-self.t_size))
                 self.handle_add_segment()
 
                 if not self.segment_remove_queue.empty():
@@ -172,11 +172,11 @@ class AudioPlayer(threading.Thread):
                     sample_count = samples.shape[1]
 
                     if pre_blank_sample_count>0:
-                        pre_blank = numpy.zeros((channels, pre_blank_sample_count), dtype=numpy.float32)
+                        pre_blank = numpy.zeros((channels, int(pre_blank_sample_count)), dtype=numpy.float32)
                         samples = numpy.concatenate((pre_blank, samples), axis=1)
 
                     if post_blank_sample_count>0:
-                        post_blank = numpy.zeros((channels, post_blank_sample_count), dtype=numpy.float32)
+                        post_blank = numpy.zeros((channels, int(post_blank_sample_count)), dtype=numpy.float32)
                         post_blank = post_blank.reshape(channels, -1).astype(numpy.float64)
                         samples = numpy.concatenate((samples, post_blank), axis=1)
                     samples = samples[:, :buffer_size]

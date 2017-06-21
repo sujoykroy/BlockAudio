@@ -15,6 +15,8 @@ class AudioRawSamples(AudioSegment):
         return self.samples[:, st:et]
 
     def get_samples_in_between_size(self, st, et):
+        st = int(st)
+        et = int(et)
         return self.samples[:, st:et]
 
     def get_index_of_time(self, t):

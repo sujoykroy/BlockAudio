@@ -1,7 +1,7 @@
 from gi.repository import Gtk, Gdk
 from MotionPicture.gui_utils import *
 from MotionPicture.commons import *
-from MotionPicture.audio_tools import AudioRawSamples
+#from MotionPicture.audio_tools import AudioRawSamples
 from MotionPicture.shapes import *
 from audio_player import AudioPlayer
 from audio_jack import AudioJack
