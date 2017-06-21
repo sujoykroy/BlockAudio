@@ -147,7 +147,6 @@ class AudioPlayer(threading.Thread):
                         self.audio_segments.append(middle_segment)
                     if new_segment not in self.audio_segments:
                         self.audio_segments.append(new_segment)
-                    print new_segment.start_at_size
                     self.segment_lock.release()
                     self.compute_duration()
 
