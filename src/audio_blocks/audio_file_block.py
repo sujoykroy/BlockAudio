@@ -1,27 +1,27 @@
 import time, numpy
 import moviepy.editor as movie_editor
-from audio_track import AudioTrack
-from audio_samples_track import AudioSamplesTrack
+from audio_block import AudioBlock
+from audio_samples_block import AudioSamplesBlock
 
-class AudioFileCache(object):
+class AudioFileBlockCache(object):
     TotalMemory = 0
     Files = dict()
     AccessTimeList = []
     MEMORY_LIMIT = 500*1024*1024
 
-class AudioFileTrack(AudioSamplesTrack):
+class AudioFileBlock(AudioSamplesBlock):
     def __init__(self, filename):
-        AudioSamplesTrack.__init__(self, samples=AudioTrack.get_blank_data(1))
+        AudioSamplesBlock.__init__(self, samples=AudioBlock.get_blank_data(1))
 
         self.filename = filename
         self.last_access_at = None
         self.calculate_duration()
         self.samples_loaded = False
-        AudioFileCache.Files[self.filename] = self
+        AudioFileBlockCache.Files[self.filename] = self
 
     def calculate_duration(self):
         audioclip = movie_editor.AudioFileClip(self.filename)
-        self.duration = int(audioclip.duration*AudioTrack.SampleRate)
+        self.duration = int(audioclip.duration*AudioBlock.SampleRate)
         return self.duration
 
     def load_samples(self):
@@ -32,29 +32,34 @@ class AudioFileTrack(AudioSamplesTrack):
         try:
             self.samples = audioclip.to_soundarray(buffersize=1000).astype(numpy.float32)
         except IOError as e:
-            self.samples = numpy.zeros((0, AudioTrack.ChannelCount), dtype=numpy.float32)
+            self.samples = numpy.zeros((0, AudioBlock.ChannelCount), dtype=numpy.float32)
 
-        AudioFileCache.TotalMemory  += self.samples.nbytes
+        AudioFileBlockCache.TotalMemory  += self.samples.nbytes
         self.samples_loaded = True
 
     def unload_samples(self):
         if not self.samples_loaded:
             return
 
-        AudioFileCache.TotalMemory -= self.samples.nbytes
-        self.samples = AudioTrack.get_blank_data(1)
+        AudioFileBlockCache.TotalMemory -= self.samples.nbytes
+        self.samples = AudioBlock.get_blank_data(1)
         self.samples_loaded = True
 
     def get_samples(self, frame_count, start_from=None, use_loop=True):
         if not self.samples_loaded:
             self.load_samples()
             self.clean_memory(exclude=self)
-        return AudioSamplesTrack.get_samples(self, frame_count, start_from=start_from, use_loop=use_loop)
+        return AudioSamplesBlock.get_samples(
+                self, frame_count, start_from=start_from, use_loop=use_loop)
+
+    def get_description(self):
+        return self.name + "\n" + self.filename
 
     @staticmethod
     def clean_memory(exclude):
-        sorted_files = sorted(AudioFileCache.Files.values(), key=lambda cache: cache.last_access_at)
-        while sorted_files and AudioFileCache.TotalMemory>AudioFileCache.MEMORY_LIMIT:
+        sorted_files = sorted(AudioFileBlockCache.Files.values(),
+                                key=lambda cache: cache.last_access_at)
+        while sorted_files and AudioFileBlockCache.TotalMemory>AudioFileBlockCache.MEMORY_LIMIT:
             first_file = sorted_files[0]
             if exclude and first_file.filename == exclude.filename:
                 continue
