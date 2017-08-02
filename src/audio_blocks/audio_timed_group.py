@@ -38,8 +38,19 @@ class AudioTimedGroup(AudioBlock):
         if stretch:
             self.calculate_duration()
 
+    def set_block_name(self, block, name):
+        for existing_block in self.blocks:
+            if existing_block.get_name() == name:
+                return False
+        block.set_name(name)
+
     def get_block_position(self, block):
         return self.blocks_positions.get(block.get_id(), -1)
+
+    def set_block_at(self, block, pos):
+        self.lock.acquire()
+        self.blocks_positions[block.get_id()] = pos
+        self.lock.release()
 
     def calculate_duration(self):
         self.lock.acquire()

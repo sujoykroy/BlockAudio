@@ -53,7 +53,7 @@ class AudioFileBlock(AudioSamplesBlock):
                 self, frame_count, start_from=start_from, use_loop=use_loop)
 
     def get_description(self):
-        return self.name + "\n" + self.filename
+        return self.name
 
     @staticmethod
     def clean_memory(exclude):

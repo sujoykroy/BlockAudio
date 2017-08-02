@@ -1,6 +1,7 @@
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 from ..audio_boxes import *
 from ..audio_blocks import *
+from ..commons import Point
 
 from gi.repository import GObject
 GObject.threads_init()
@@ -32,12 +33,16 @@ class AudioSequencer(Gtk.Window):
         self.board = Gtk.DrawingArea()
         self.board.set_size_request(400, 300)
         self.board_container.attach(self.board, left=0, top=0, width=1, height=1)
+        self.board.set_events(
+            Gdk.EventMask.POINTER_MOTION_MASK|Gdk.EventMask.BUTTON_PRESS_MASK|\
+            Gdk.EventMask.BUTTON_RELEASE_MASK|Gdk.EventMask.SCROLL_MASK)
+
         self.board.connect("draw", self.on_board_draw)
         self.board.connect("configure-event", self.on_board_configure_event)
-        #self.board.connect("button-press-event", self.on_board_mouse_press)
-        #self.board.connect("button-release-event", self.on_board_mouse_release)
-        #self.board.connect("motion-notify-event", self.on_board_mouse_move)
-        #self.board.connect("scroll-event", self.on_board_mouse_scroll)
+        self.board.connect("button-press-event", self.on_board_mouse_press)
+        self.board.connect("button-release-event", self.on_board_mouse_release)
+        self.board.connect("motion-notify-event", self.on_board_mouse_move)
+        self.board.connect("scroll-event", self.on_board_mouse_scroll)
 
         self.board_vadjust = Gtk.Adjustment(0, 0, 1., .01, 0, 0)
         self.board_vscrollbar = Gtk.VScrollbar(self.board_vadjust)
@@ -50,6 +55,10 @@ class AudioSequencer(Gtk.Window):
         self.audio_block = None
         self.block_box = None
         self.audio_server = None
+
+        self.mouse_point = Point(0., 0.)
+        self.mouse_init_point = Point(0., 0.)
+        self.selected_box = None
 
         self.show_all()
         self.pause_button.hide()
@@ -73,7 +82,6 @@ class AudioSequencer(Gtk.Window):
         self.audio_server.pause()
         self.play_button.show()
         self.pause_button.hide()
-
 
     def on_playahead_movement(self):
         self.redraw()
@@ -112,6 +120,29 @@ class AudioSequencer(Gtk.Window):
         if self.block_box:
             self.block_box.set_size(
                 self.board.get_allocated_width(), self.board.get_allocated_height())
+
+    def on_board_mouse_press(self, widget, event):
+        self.mouse_init_point.x = self.mouse_point.x
+        self.mouse_init_point.y = self.mouse_point.y
+        if self.block_box:
+            self.selected_box = self.block_box.find_box_at(self.mouse_point)
+            if self.selected_box:
+                self.selected_box_init_position = self.selected_box.get_postion()
+
+    def on_board_mouse_release(self,widget, event):
+        self.selected_box = None
+
+    def on_board_mouse_move(self, widget, event):
+        self.mouse_point.x = event.x
+        self.mouse_point.y = event.y
+        if self.selected_box:
+            self.block_box.move_box(
+                self.selected_box, self.selected_box_init_position,
+                self.mouse_init_point, self.mouse_point)
+            self.redraw()
+
+    def on_board_mouse_scroll(self, widget, event):
+        pass
 
     def quit(self, wiget, event):
         if self.audio_server:

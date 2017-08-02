@@ -26,6 +26,7 @@ group = AudioTimedGroup()
 
 t = 0
 c = 0
+import os
 for f in files.split("\n"):
     if not f:
         continue
@@ -33,6 +34,7 @@ for f in files.split("\n"):
     file_block.load_samples()
     file_block.loop = False
     group.add_block(file_block, at=t)
+    group.set_block_name(file_block, os.path.basename(f))
     t += file_block.get_time_duration()
     c += 1
     if c>4:

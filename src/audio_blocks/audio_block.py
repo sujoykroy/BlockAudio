@@ -28,6 +28,12 @@ class AudioBlock(object):
     def get_id(self):
         return self.id_num
 
+    def set_name(self, name):
+        self.name = name
+
+    def get_name(self):
+        return self.name
+
     def play(self):
         self.paused = False
 

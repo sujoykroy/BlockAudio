@@ -1,4 +1,5 @@
 from ..commons.colors import Color
+from ..commons.point import Point
 from ..commons import draw_utils
 import cairo
 import pango
@@ -26,14 +27,29 @@ class AudioBlockBox(object):
         self.height = 50.
         self.update_size()
 
+    def get_id(self):
+        return self.id_num
+
     def set_x(self, x):
         self.x = x
 
     def set_y(self, y):
         self.y = y
 
+    def get_postion(self):
+        return Point(self.x, self.y)
+
     def update_size(self):
         self.width = self.audio_block.duration*AudioBlockBox.PIXELS_PER_SAMPLE
+
+    def transform_point(self, point):
+        point = point.copy()
+        point.translate(-self.x, -self.y)
+        point.scale(1./self.scale_x, 1./self.scale_y)
+        return point
+
+    def is_within(self, point):
+        return self.x<=point.x<=self.x+self.width and self.y<=point.y<=self.y+self.height
 
     def set_size(self, width, height):
         if width<self.width:
