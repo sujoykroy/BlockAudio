@@ -32,7 +32,7 @@ class AudioTimedGroupBox(AudioBlockBox):
 
     def update_box_position(self, block_box, y):
         pos = self.audio_block.get_block_position(block_box.audio_block)
-        block_box.set_x(pos*AudioBlockBox.PIXELS_PER_SAMPLE)
+        block_box.set_x(pos*AudioBlockBox.PIXEL_PER_SAMPLE)
         block_box.set_y(y)
 
     def update_size(self):
@@ -56,13 +56,18 @@ class AudioTimedGroupBox(AudioBlockBox):
                 return block_box
         return None
 
-    def move_box(self, block_box, init_position, start_point, end_point):
+    def move_box(self, block_box, init_position, start_point, end_point, beat=None):
         start_point = self.transform_point(start_point)
         end_point = self.transform_point(end_point)
         xdiff = end_point.x - start_point.x
         ydiff = end_point.y - start_point.y
 
-        sample_pos = (init_position.x+xdiff)*1.0/AudioBlockBox.PIXELS_PER_SAMPLE
+        xpos = init_position.x+xdiff
+        if beat:
+            sample_pos = beat.pixel2sample(xpos)
+        else:
+            sample_pos = xposW*1.0/AudioBlockBox.PIXEL_PER_SAMPLE
+
         self.audio_block.set_block_at(block_box.audio_block, int(sample_pos))
 
         self.update_box_position(block_box, init_position.y+ydiff)

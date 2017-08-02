@@ -42,7 +42,7 @@ class AudioServer(threading.Thread):
         self.stream.start_stream()
         self.audio_group.play()
         buffer_time = AudioBlock.FramesPerBuffer/float(AudioBlock.SampleRate)
-        period = buffer_time*.5
+        period = buffer_time*.9
         last_time = 0
         while not self.should_exit:
             if (time.time()-last_time)>period and not self.paused:

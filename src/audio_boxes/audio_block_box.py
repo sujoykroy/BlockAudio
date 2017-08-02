@@ -7,9 +7,11 @@ import pangocairo
 
 class AudioBlockBox(object):
     IdSeed = 0
-    PIXELS_PER_SAMPLE = 10.
+    PIXEL_PER_SAMPLE = 10.
     BorderColor = Color.parse("000000")
     HeadColor = Color.parse("FF0000")
+    DivColor = Color.parse("CCCCCC")
+    BeatColor = Color.parse("555555")
     FontName = "12"
 
     def __init__(self, audio_block, parent_box=None, fill_color="0000FF"):
@@ -40,7 +42,7 @@ class AudioBlockBox(object):
         return Point(self.x, self.y)
 
     def update_size(self):
-        self.width = self.audio_block.duration*AudioBlockBox.PIXELS_PER_SAMPLE
+        self.width = self.audio_block.duration*AudioBlockBox.PIXEL_PER_SAMPLE
 
     def transform_point(self, point):
         point = point.copy()
@@ -116,11 +118,21 @@ class AudioBlockBox(object):
         draw_utils.draw_stroke(ctx, 2, self.BorderColor)
 
     def show_current_position(self, ctx):
-        x = self.audio_block.current_pos*AudioBlockBox.PIXELS_PER_SAMPLE
+        x = self.audio_block.current_pos*AudioBlockBox.PIXEL_PER_SAMPLE
         ctx.save()
         self.pre_draw(ctx)
         ctx.move_to(x, 0)
         ctx.line_to(x, self.height)
         ctx.restore()
         draw_utils.draw_stroke(ctx, 2, self.HeadColor)
+
+    def show_beat_marks(self, ctx, beat):
+        ctx.save()
+        self.pre_draw(ctx)
+        for x in beat.get_div_pixels(self.x, self.x+self.width):
+            ctx.save()
+            ctx.move_to(x, 0)
+            ctx.line_to(x, self.height)
+            ctx.restore()
+            draw_utils.draw_stroke(ctx, 2, self.DivColor)
 

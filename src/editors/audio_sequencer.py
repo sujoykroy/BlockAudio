@@ -1,7 +1,7 @@
 from gi.repository import Gtk, Gdk
 from ..audio_boxes import *
 from ..audio_blocks import *
-from ..commons import Point
+from ..commons import Point, Beat
 
 from gi.repository import GObject
 GObject.threads_init()
@@ -59,6 +59,9 @@ class AudioSequencer(Gtk.Window):
         self.mouse_point = Point(0., 0.)
         self.mouse_init_point = Point(0., 0.)
         self.selected_box = None
+        self.beat = Beat(bpm=120,
+                         sample_rate=AudioBlock.SampleRate,
+                         pixel_per_sample=AudioBlockBox.PIXEL_PER_SAMPLE)
 
         self.show_all()
         self.pause_button.hide()
@@ -114,6 +117,7 @@ class AudioSequencer(Gtk.Window):
         if not self.block_box:
             return
         self.block_box.draw(ctx)
+        self.block_box.show_beat_marks(ctx, self.beat)
         self.block_box.show_current_position(ctx)
 
     def on_board_configure_event(self, widget, event):
@@ -138,7 +142,8 @@ class AudioSequencer(Gtk.Window):
         if self.selected_box:
             self.block_box.move_box(
                 self.selected_box, self.selected_box_init_position,
-                self.mouse_init_point, self.mouse_point)
+                self.mouse_init_point, self.mouse_point,
+                beat=self.beat)
             self.redraw()
 
     def on_board_mouse_scroll(self, widget, event):
