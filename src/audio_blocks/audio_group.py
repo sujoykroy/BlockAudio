@@ -29,6 +29,7 @@ class AudioGroup(AudioBlock):
         self.lock.release()
 
         self._samples = None
+        midi_messages = []
         for i in xrange(block_count):
 
             self.lock.acquire()
@@ -41,7 +42,9 @@ class AudioGroup(AudioBlock):
             if not block:
                 break
 
-            block_samples = block.get_samples(frame_count, loop=self.LOOP_INFINITE)
+            block_samples, block_midi_messages = block.get_samples(frame_count, loop=self.LOOP_INFINITE)
+            if block_midi_messages:
+                midi_messages.extend(block_midi_messages)
             if block_samples is None:
                 continue
 
@@ -52,5 +55,5 @@ class AudioGroup(AudioBlock):
 
         if  self._samples is None:
             self._samples = self.blank_data.copy()
-        return self._samples
+        return [self._samples, midi_messages]
 

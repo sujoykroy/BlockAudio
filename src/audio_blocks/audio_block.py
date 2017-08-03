@@ -1,5 +1,6 @@
 import numpy
 import time
+from ..commons import MidiMessage
 
 class AudioBlock(object):
     FramesPerBuffer = 1024
@@ -25,9 +26,32 @@ class AudioBlock(object):
         self.duration = 0
         self.inclusive_duration = 0
         self.current_pos = 0
+        self.music_note = "C5"
+        self.midi_channel = None
+        self.midi_velocity = 64
+
         self.id_num = AudioBlock.IdSeed
         AudioBlock.IdSeed += 1
         self.name = self.new_name()
+
+    def set_midi_channel(self, channel):
+        self.midi_channel = channel
+
+    def set_note(self, note):
+        self.music_note = note
+
+    def new_midi_note_on_message(self, delay):
+        return MidiMessage.note_on(
+                        delay=delay,
+                        note=self.music_note,
+                        velocity=self.midi_velocity,
+                        channel=self.midi_channel)
+
+    def new_midi_note_off_message(self, delay):
+        return MidiMessage.note_off(
+                        delay=delay,
+                        note=self.music_note,
+                        channel=self.midi_channel)
 
     def set_duration(self, duration):
         if duration<=0:
@@ -55,7 +79,7 @@ class AudioBlock(object):
     def get_time_duration(self):
         return self.duration/AudioBlock.SampleRate
 
-    def get_samples(self, frame_count, start_from=None, use_loop=True):
+    def get_samples(self, frame_count, start_from=None, use_loop=True, loop=None):
         return self.get_blank_data(frame_count)
 
     def get_description(self):

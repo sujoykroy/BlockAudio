@@ -97,9 +97,11 @@ class AudioTimedGroup(AudioBlock):
         if loop is None:
             loop = self.loop
 
+        midi_messages = []
         if loop and use_loop:
             data = None
             spread = frame_count
+            data_count = 0
             while data is None or data.shape[0]<frame_count:
                 if loop == self.LOOP_STRETCH:
                     if start_pos>=self.duration:
@@ -109,12 +111,21 @@ class AudioTimedGroup(AudioBlock):
                     start_pos %= self.inclusive_duration
                     read_pos = start_pos
 
-                seg = self.get_samples(spread, start_from=read_pos, use_loop=False)
+                if read_pos+spread>self.inclusive_duration:
+                    read_count = self.inclusive_duration-read_pos
+                else:
+                    read_count = spread
+                seg, seg_midi_messages = self.get_samples(read_count, start_from=read_pos, use_loop=False)
+                if seg_midi_messages:
+                    for midi_message in seg_midi_messages:
+                        midi_message.increase_delay(data_count)
+                    midi_messages.extend(seg_midi_messages)
                 if data is None:
                     data = seg
                 else:
                     data = numpy.append(data, seg, axis=0)
                 start_pos += seg.shape[0]
+                data_count += seg.shape[0]
                 spread -= seg.shape[0]
 
             if start_from is None:
@@ -124,7 +135,7 @@ class AudioTimedGroup(AudioBlock):
                 blank_shape = (frame_count - data.shape[0], AudioBlock.ChannelCount)
                 data = numpy.append(data, numpy.zeros(blank_shape, dtype=numpy.float32), axis=0)
 
-            return data
+            return [data, midi_messages]
 
         samples = None
         for i in xrange(block_count):
@@ -159,7 +170,9 @@ class AudioTimedGroup(AudioBlock):
                 block_start_from = start_pos-block_start_pos
                 sub_frame_count = frame_count
 
-            seg = block.get_samples(sub_frame_count, start_from=block_start_from)
+            seg, seg_midi_messages = block.get_samples(sub_frame_count, start_from=block_start_from)
+            if seg_midi_messages:
+                    midi_messages.extend(seg_midi_messages)
 
             if block_samples is None:
                 block_samples = seg
@@ -179,4 +192,4 @@ class AudioTimedGroup(AudioBlock):
             if self.current_pos>self.duration:
                 self.current_pos = self.duration
 
-        return samples
+        return [samples, midi_messages]

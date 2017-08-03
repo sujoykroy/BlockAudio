@@ -116,6 +116,8 @@ class AudioBlockBox(object):
                 #ctx.clip()
                 ctx.restore()
                 x += inclusive_width
+                if not self.audio_block.loop:
+                    break
 
         ctx.save()
         self.pre_draw(ctx)

@@ -29,6 +29,18 @@ class Beat(object):
         sample = (sample//self.div_sample_unit)*self.div_sample_unit
         return int(round(sample))
 
+    def get_beat_time(self, beat):
+        return beat*self.beat_sample_unit*1./self.sample_rate
+
+    def get_beat_sample(self, beat):
+        return beat*self.beat_sample_unit
+
+    def get_div_time(self, div):
+        return div*self.beat_sample_unit*1./(self.div_per_beat*self.sample_rate)
+
+    def get_div_sample(self, div):
+        return int(div*self.beat_sample_unit*1./(self.div_per_beat))
+
     def get_beat_pixels(self, start_pixel, end_pixel):
         start_pixel = (start_pixel//self.beat_pixel_unit)*self.beat_pixel_unit
         pixel = start_pixel
