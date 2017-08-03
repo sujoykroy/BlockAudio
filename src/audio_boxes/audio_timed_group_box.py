@@ -1,6 +1,7 @@
 from audio_block_box import AudioBlockBox
 from ..audio_blocks.audio_timed_group import AudioTimedGroup
 from ..commons import draw_utils
+from expander_box import ExpanderBox
 
 class AudioTimedGroupBox(AudioBlockBox):
     def __init__(self, audio_block=None):
@@ -53,23 +54,35 @@ class AudioTimedGroupBox(AudioBlockBox):
         for block_box_id in reversed(self.block_zs):
             block_box = self.block_boxes.get(block_box_id)
             if block_box.is_within(point):
+                expander = block_box.get_expander(at=point)
+                if expander:
+                    return expander
                 return block_box
         return None
 
-    def move_box(self, block_box, init_position, start_point, end_point, beat=None):
+    def move_box(self, box, init_position, start_point, end_point, beat=None):
         start_point = self.transform_point(start_point)
         end_point = self.transform_point(end_point)
         xdiff = end_point.x - start_point.x
         ydiff = end_point.y - start_point.y
 
-        xpos = init_position.x+xdiff
-        if beat:
-            sample_pos = beat.pixel2sample(xpos)
-        else:
-            sample_pos = xposW*1.0/AudioBlockBox.PIXEL_PER_SAMPLE
+        if isinstance(box, AudioBlockBox):
+            xpos = init_position.x+xdiff
+            if beat:
+                sample_pos = beat.pixel2sample(xpos)
+            else:
+                sample_pos = xpos*1.0/AudioBlockBox.PIXEL_PER_SAMPLE
 
-        self.audio_block.set_block_at(block_box.audio_block, int(sample_pos))
-
-        self.update_box_position(block_box, init_position.y+ydiff)
+            self.audio_block.set_block_at(box.audio_block, int(sample_pos))
+            self.update_box_position(box, init_position.y+ydiff)
+        elif isinstance(box, ExpanderBox):
+            xpos = end_point.x
+            if beat:
+                sample_pos = beat.pixel2sample(xpos)
+            else:
+                sample_pos = xpos*1.0/AudioBlockBox.PIXEL_PER_SAMPLE
+            self.audio_block.stretch_block_to(box.parent_box.audio_block, int(sample_pos))
+            box.parent_box.update_size()
+            self.update_box_position(box.parent_box, box.parent_box.y)
         self.update_size()
 

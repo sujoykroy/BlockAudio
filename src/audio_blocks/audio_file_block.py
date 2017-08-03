@@ -16,13 +16,13 @@ class AudioFileBlock(AudioSamplesBlock):
         self.filename = filename
         self.last_access_at = None
         self.calculate_duration()
+        self.duration = self.inclusive_duration
         self.samples_loaded = False
         AudioFileBlockCache.Files[self.filename] = self
 
     def calculate_duration(self):
         audioclip = movie_editor.AudioFileClip(self.filename)
-        self.duration = int(audioclip.duration*AudioBlock.SampleRate)
-        return self.duration
+        self.inclusive_duration = int(audioclip.duration*AudioBlock.SampleRate)
 
     def load_samples(self):
         self.last_access_at = time.time()

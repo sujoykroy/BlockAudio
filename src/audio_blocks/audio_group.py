@@ -41,7 +41,7 @@ class AudioGroup(AudioBlock):
             if not block:
                 break
 
-            block_samples = block.get_samples(frame_count)
+            block_samples = block.get_samples(frame_count, loop=self.LOOP_INFINITE)
             if block_samples is None:
                 continue
 

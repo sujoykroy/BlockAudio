@@ -1,9 +1,11 @@
 from ..commons.colors import Color
 from ..commons.point import Point
 from ..commons import draw_utils
+from expander_box import ExpanderBox
 import cairo
 import pango
 import pangocairo
+from ..audio_blocks import AudioSamplesBlock
 
 class AudioBlockBox(object):
     IdSeed = 0
@@ -27,6 +29,9 @@ class AudioBlockBox(object):
         self.x = 0.
         self.y = 0.
         self.height = 50.
+        self.image = None
+
+        self.expander_box = ExpanderBox(self)
         self.update_size()
 
     def get_id(self):
@@ -38,7 +43,7 @@ class AudioBlockBox(object):
     def set_y(self, y):
         self.y = y
 
-    def get_postion(self):
+    def get_position(self):
         return Point(self.x, self.y)
 
     def update_size(self):
@@ -53,6 +58,11 @@ class AudioBlockBox(object):
     def is_within(self, point):
         return self.x<=point.x<=self.x+self.width and self.y<=point.y<=self.y+self.height
 
+    def get_expander(self, at):
+        if self.expander_box.is_within(at):
+            return self.expander_box
+        return None
+
     def set_size(self, width, height):
         if width<self.width:
             self.scale_x = float(width)/self.width
@@ -62,7 +72,6 @@ class AudioBlockBox(object):
             self.scale_y = float(height)/self.height
         else:
             self.scale_y = 1.
-        print self.scale_x, self.scale_y
 
     def __eq__(self, other):
         return isinstance(self, AudioBlockBox) and other.id_num == self.id_num
@@ -82,6 +91,31 @@ class AudioBlockBox(object):
         self.draw_path(ctx)
         ctx.restore()
         draw_utils.draw_fill(ctx, self.fill_color)
+
+        inclusive_width = self.audio_block.inclusive_duration*self.PIXEL_PER_SAMPLE
+        x = 0
+        image = self.get_image()
+        if image:
+            sx = inclusive_width*1./image.get_width()
+            sy = self.height*1./image.get_height()
+            while x<self.width:
+                ctx.save()
+                self.pre_draw(ctx)
+                ctx.translate(x, 0)
+                ctx.scale(sx, sy)
+                ctx.set_source_surface(image)
+                ctx.scale(1/sx, 1/sy)
+                ctx.rectangle(0, 0, self.width-x, self.height)
+                ctx.clip()
+                ctx.paint()
+                ctx.restore()
+
+                ctx.save()
+                self.pre_draw(ctx)
+                self.draw_path(ctx)
+                #ctx.clip()
+                ctx.restore()
+                x += inclusive_width
 
         ctx.save()
         self.pre_draw(ctx)
@@ -117,6 +151,8 @@ class AudioBlockBox(object):
         ctx.restore()
         draw_utils.draw_stroke(ctx, 2, self.BorderColor)
 
+        self.expander_box.draw(ctx)
+
     def show_current_position(self, ctx):
         x = self.audio_block.current_pos*AudioBlockBox.PIXEL_PER_SAMPLE
         ctx.save()
@@ -126,13 +162,60 @@ class AudioBlockBox(object):
         ctx.restore()
         draw_utils.draw_stroke(ctx, 2, self.HeadColor)
 
-    def show_beat_marks(self, ctx, beat):
+    def show_div_marks(self, ctx, beat):
         ctx.save()
         self.pre_draw(ctx)
+        ctx.new_path()
         for x in beat.get_div_pixels(self.x, self.x+self.width):
             ctx.save()
             ctx.move_to(x, 0)
             ctx.line_to(x, self.height)
             ctx.restore()
-            draw_utils.draw_stroke(ctx, 2, self.DivColor)
+        ctx.restore()
+        draw_utils.draw_stroke(ctx, 2, self.DivColor)
 
+    def show_beat_marks(self, ctx, beat):
+        ctx.save()
+        self.pre_draw(ctx)
+        ctx.new_path()
+        for x in beat.get_beat_pixels(self.x, self.x+self.width):
+            ctx.save()
+            ctx.move_to(x, 0)
+            ctx.line_to(x, self.height)
+            ctx.restore()
+        ctx.restore()
+        draw_utils.draw_stroke(ctx, 2, self.BeatColor)
+
+    def show_border_line(self, ctx):
+        ctx.save()
+        self.pre_draw(ctx)
+        self.draw_path(ctx)
+        ctx.restore()
+        draw_utils.draw_stroke(ctx, 2, self.BorderColor)
+
+    def get_image(self):
+        if self.image:
+            return self.image
+
+        if isinstance(self.audio_block, AudioSamplesBlock):
+            bw = 100
+            bh = 50
+            self.image = cairo.ImageSurface(cairo.FORMAT_ARGB32, bw, bh)
+            ctx = cairo.Context(self.image)
+            samples = self.audio_block.samples
+            xunit = samples.shape[0]*1./bw
+            yunit = bh/(2*samples.shape[1])
+            for r in xrange(samples.shape[1]):
+                ctx.save()
+                #ctx.translate(0, r*(bh*1./samples.shape[1]))
+                for x in xrange(bw):
+                    i = int(x*xunit)
+                    y = (2*r+(1-samples[i][r]))*yunit
+                    if x == 0:
+                        ctx.move_to(x, y)
+                    else:
+                        ctx.line_to(x, y)
+                ctx.restore()
+                draw_utils.draw_stroke(ctx, 1, "00FFFF")
+            #self.image.write_to_png("/home/sujoy/Temporary/test.png")
+        return self.image

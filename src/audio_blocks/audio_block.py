@@ -5,6 +5,9 @@ class AudioBlock(object):
     FramesPerBuffer = 1024
     SampleRate = 44100.
     ChannelCount = 2
+    LOOP_NONE = 0
+    LOOP_INFINITE = 1
+    LOOP_STRETCH = 2
 
     IdSeed = 0
     NameSeed = 0
@@ -18,12 +21,18 @@ class AudioBlock(object):
 
     def __init__(self):
         self.paused = False
-        self.loop = True
+        self.loop = self.LOOP_STRETCH
         self.duration = 0
+        self.inclusive_duration = 0
         self.current_pos = 0
         self.id_num = AudioBlock.IdSeed
         AudioBlock.IdSeed += 1
         self.name = self.new_name()
+
+    def set_duration(self, duration):
+        if duration<=0:
+            return
+        self.duration = duration
 
     def get_id(self):
         return self.id_num

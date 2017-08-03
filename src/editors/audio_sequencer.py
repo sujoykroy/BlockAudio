@@ -116,9 +116,11 @@ class AudioSequencer(Gtk.Window):
     def on_board_draw(self, widget, ctx):
         if not self.block_box:
             return
+        self.block_box.show_div_marks(ctx, self.beat)
         self.block_box.draw(ctx)
         self.block_box.show_beat_marks(ctx, self.beat)
         self.block_box.show_current_position(ctx)
+        self.block_box.show_border_line(ctx)
 
     def on_board_configure_event(self, widget, event):
         if self.block_box:
@@ -131,7 +133,7 @@ class AudioSequencer(Gtk.Window):
         if self.block_box:
             self.selected_box = self.block_box.find_box_at(self.mouse_point)
             if self.selected_box:
-                self.selected_box_init_position = self.selected_box.get_postion()
+                self.selected_box_init_position = self.selected_box.get_position()
 
     def on_board_mouse_release(self,widget, event):
         self.selected_box = None

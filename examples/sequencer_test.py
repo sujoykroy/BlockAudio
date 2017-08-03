@@ -24,7 +24,7 @@ files="""
 
 group = AudioTimedGroup()
 
-t = 0
+t = .5
 c = 0
 import os
 for f in files.split("\n"):
@@ -32,12 +32,11 @@ for f in files.split("\n"):
         continue
     file_block = AudioFileBlock(f)
     file_block.load_samples()
-    file_block.loop = False
     group.add_block(file_block, at=t)
     group.set_block_name(file_block, os.path.basename(f))
     t += file_block.get_time_duration()
     c += 1
-    if c>4:
+    if c>10:
         break
 
 sequencer.load_block(group)

@@ -24,8 +24,9 @@ class AudioTimedGroup(AudioBlock):
             ret = False
         self.blocks_positions[block.get_id()]=at
         self.lock.release()
+        self.calculate_duration()
         if stretch:
-            self.calculate_duration()
+            self.duration = self.inclusive_duration
         return ret
 
     def remove_block(self, block, stretch=True):
@@ -35,8 +36,9 @@ class AudioTimedGroup(AudioBlock):
             del self.blocks[index]
             del self.blocks_positions[block.get_id()]
         self.lock.release()
+        self.calculate_duration()
         if stretch:
-            self.calculate_duration()
+            self.duration = self.inclusive_duration
 
     def set_block_name(self, block, name):
         for existing_block in self.blocks:
@@ -50,6 +52,12 @@ class AudioTimedGroup(AudioBlock):
     def set_block_at(self, block, pos):
         self.lock.acquire()
         self.blocks_positions[block.get_id()] = pos
+        self.lock.release()
+
+    def stretch_block_to(self, block, end_pos):
+        self.lock.acquire()
+        start_pos = self.blocks_positions[block.get_id()]
+        block.set_duration(end_pos-start_pos)
         self.lock.release()
 
     def calculate_duration(self):
@@ -70,13 +78,12 @@ class AudioTimedGroup(AudioBlock):
             if not block:
                 break
 
-            end_at = self.blocks_positions[block.get_id()]+block.calculate_duration()
+            end_at = self.blocks_positions[block.get_id()]+block.duration
             if end_at>duration:
                 duration = end_at
-        self.duration = duration
-        return duration
+        self.inclusive_duration = duration
 
-    def get_samples(self, frame_count, start_from=None, use_loop=True):
+    def get_samples(self, frame_count, start_from=None, use_loop=True, loop=None):
         if self.paused:
             return self.blank_data
         self.lock.acquire()
@@ -87,21 +94,36 @@ class AudioTimedGroup(AudioBlock):
         else:
             start_pos = int(start_from)
 
-        if self.loop and use_loop:
-            data = None
+        if loop is None:
+            loop = self.loop
 
+        if loop and use_loop:
+            data = None
+            spread = frame_count
             while data is None or data.shape[0]<frame_count:
-                sub_frame_count = min(self.duration-start_pos, frame_count)
-                seg = self.get_samples(sub_frame_count, start_from=start_pos, use_loop=False)
+                if loop == self.LOOP_STRETCH:
+                    if start_pos>=self.duration:
+                        break
+                    read_pos = start_pos%self.inclusive_duration
+                else:
+                    start_pos %= self.inclusive_duration
+                    read_pos = start_pos
+
+                seg = self.get_samples(spread, start_from=read_pos, use_loop=False)
                 if data is None:
                     data = seg
                 else:
                     data = numpy.append(data, seg, axis=0)
                 start_pos += seg.shape[0]
-                start_pos %= self.duration
+                spread -= seg.shape[0]
 
             if start_from is None:
                 self.current_pos = start_pos
+
+            if data.shape[0]<frame_count:
+                blank_shape = (frame_count - data.shape[0], AudioBlock.ChannelCount)
+                data = numpy.append(data, numpy.zeros(blank_shape, dtype=numpy.float32), axis=0)
+
             return data
 
         samples = None
@@ -120,7 +142,7 @@ class AudioTimedGroup(AudioBlock):
             if start_pos+frame_count<block_start_pos:
                 continue
 
-            if block.loop:
+            if block.loop == self.LOOP_INFINITE:
                 if block_start_pos<start_pos:
                     elapsed = start_pos-block_start_pos
                     block_start_pos += (elapsed//block.duration)*block.duration

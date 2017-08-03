@@ -19,14 +19,15 @@ class Beat(object):
         self.calculate()
 
     def calculate(self):
-        self.div_sample_unit = ((60./(self.bpm*self.div_per_beat))*self.sample_rate)
-        self.beat_pixel_unit = self.div_sample_unit*self.pixel_per_sample
-        self.div_pixel_unit = self.beat_pixel_unit*1./self.div_per_beat
+        self.beat_sample_unit = ((60./self.bpm)*self.sample_rate)
+        self.div_sample_unit = self.beat_sample_unit/self.div_per_beat
+        self.div_pixel_unit = self.div_sample_unit*self.pixel_per_sample
+        self.beat_pixel_unit = self.div_pixel_unit*self.div_per_beat
 
     def pixel2sample(self, pixel):
         sample = pixel*1./self.pixel_per_sample
         sample = (sample//self.div_sample_unit)*self.div_sample_unit
-        return int(sample)
+        return int(round(sample))
 
     def get_beat_pixels(self, start_pixel, end_pixel):
         start_pixel = (start_pixel//self.beat_pixel_unit)*self.beat_pixel_unit
