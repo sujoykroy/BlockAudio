@@ -4,7 +4,11 @@ class MusicNote(object):
     def __init__(self, name, midi_value):
         self.name = name
         self.midi_value = midi_value
-        self.frequecy =  (2**((midi_value-69)/12.))*440
+        self.frequency =  (2**((midi_value-69)/12.))*440
+
+    @staticmethod
+    def get_note(note):
+        return MusicNote.Notes.get(note)
 
     @staticmethod
     def populate():

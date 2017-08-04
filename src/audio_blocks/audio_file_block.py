@@ -47,6 +47,10 @@ class AudioFileBlock(AudioSamplesBlock):
         AudioFileBlockCache.TotalMemory  += self.samples.nbytes
         self.samples_loaded = True
 
+    def get_full_samples(self):
+        self.load_samples()
+        return self.samples
+
     def unload_samples(self):
         if not self.samples_loaded:
             return

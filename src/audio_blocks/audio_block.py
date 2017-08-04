@@ -35,6 +35,9 @@ class AudioBlock(object):
         AudioBlock.IdSeed += 1
         self.name = self.new_name()
 
+    def set_music_note(self, note):
+        self.music_note = note
+
     def set_midi_channel(self, channel):
         self.midi_channel = channel
 

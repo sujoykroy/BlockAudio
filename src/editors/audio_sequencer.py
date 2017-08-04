@@ -59,7 +59,7 @@ class AudioSequencer(Gtk.Window):
         self.mouse_point = Point(0., 0.)
         self.mouse_init_point = Point(0., 0.)
         self.selected_box = None
-        self.beat = Beat(bpm=120/4,
+        self.beat = Beat(bpm=120/8,
                          sample_rate=AudioBlock.SampleRate,
                          pixel_per_sample=AudioBlockBox.PIXEL_PER_SAMPLE)
 

@@ -1,5 +1,6 @@
 from dawpy.editors import AudioSequencer
 from dawpy.audio_blocks import AudioTimedGroup, AudioFileBlock
+from dawpy.audio_blocks import AudioFileInstru
 
 sequencer = AudioSequencer()
 
@@ -30,7 +31,7 @@ import os
 for f in files.split("\n"):
     if not f:
         continue
-    file_block = AudioFileBlock(f, sample_count=0*sequencer.beat.get_div_sample(1))
+    file_block = AudioFileBlock(f, sample_count=1*sequencer.beat.get_div_sample(1))
     file_block.load_samples()
     #file_block.set_inclusive_duration(sequencer.beat.get_div_sample(1))
 
@@ -44,10 +45,10 @@ for f in files.split("\n"):
     if True:
         if c==0:
             file_block.set_midi_channel(1)
-        if c==1:
+        if c==10:
             file_block.set_midi_channel(1)
             file_block.set_note("D5")
-        if c==2:
+        if c==20:
             file_block.set_midi_channel(1)
             file_block.set_note("E5")
     c += 1
@@ -55,7 +56,14 @@ for f in files.split("\n"):
         break
 #group.set_duration(sequencer.beat.get_div_time(3))
 
-sequencer.load_block(group)
+group2 = AudioTimedGroup()
+file_instru = AudioFileInstru("/home/sujoy/Music/amsynth-out.wav")
+t = 0
+for nn in ["C5", "D5", "E5", "F5"]:
+    group2.add_block(file_instru.create_note_block(nn), t)
+    t += sequencer.beat.get_div_time(1)
+
+sequencer.load_block(group2)
 
 from gi.repository import Gtk
 Gtk.main()
