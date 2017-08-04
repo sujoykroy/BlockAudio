@@ -9,6 +9,9 @@ class MidiMessage(object):
     def increase_delay(self, incre):
         self.delay += incre
 
+    def __repr__(self):
+        return "delay={0},mido={1}".format(self.delay, self.mido_message)
+
     @classmethod
     def note_on(cls, delay, note, channel, velocity=64):
         note = MusicNote.Notes[note]

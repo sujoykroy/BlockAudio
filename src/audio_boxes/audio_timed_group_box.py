@@ -72,6 +72,8 @@ class AudioTimedGroupBox(AudioBlockBox):
                 sample_pos = beat.pixel2sample(xpos)
             else:
                 sample_pos = xpos*1.0/AudioBlockBox.PIXEL_PER_SAMPLE
+            if sample_pos<0:
+                sample_pos = 0
 
             self.audio_block.set_block_at(box.audio_block, int(sample_pos))
             self.update_box_position(box, init_position.y+ydiff)
@@ -81,6 +83,7 @@ class AudioTimedGroupBox(AudioBlockBox):
                 sample_pos = beat.pixel2sample(xpos)
             else:
                 sample_pos = xpos*1.0/AudioBlockBox.PIXEL_PER_SAMPLE
+
             self.audio_block.stretch_block_to(box.parent_box.audio_block, int(sample_pos))
             box.parent_box.update_size()
             self.update_box_position(box.parent_box, box.parent_box.y)

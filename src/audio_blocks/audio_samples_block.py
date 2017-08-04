@@ -23,12 +23,11 @@ class AudioSamplesBlock(AudioBlock):
 
         audio_message = AudioMessage()
         data = None
-        if self.midi_channel is not None and start_pos == 0:
-            audio_message.midi_messages.append(self.new_midi_note_on_message(0))
 
         if loop and use_loop:
             spread = frame_count
             start_init_pos = start_pos
+            elapsed_pos = 0
             while data is None or data.shape[0]<frame_count:
                 if loop == self.LOOP_STRETCH:
                     if start_pos>=self.duration:
@@ -38,7 +37,17 @@ class AudioSamplesBlock(AudioBlock):
                     start_pos %= self.duration
                     read_pos = start_pos
 
-                seg = self.samples[read_pos: read_pos+spread, :]
+                if read_pos<self.inclusive_duration:
+                    if self.midi_channel is not None:
+                        if read_pos == 0:
+                            audio_message.midi_messages.append(
+                                self.new_midi_note_on_message(elapsed_pos))
+
+                    seg = self.samples[read_pos: read_pos+spread, :]
+                else:
+                    read_count = min(self.duration-start_pos, spread)
+                    seg = numpy.zeros((read_count, self.ChannelCount), dtype=numpy.float32)
+
                 if data is None:
                     data = seg
                 else:
@@ -46,22 +55,21 @@ class AudioSamplesBlock(AudioBlock):
 
                 start_pos += seg.shape[0]
                 spread -= seg.shape[0]
+                elapsed_pos += seg.shape[0]
 
                 if self.midi_channel is not None:
-                    remainder = (start_init_pos+data.shape[0])%self.inclusive_duration
-                    quotient = (start_init_pos+data.shape[0])//self.inclusive_duration
-                    for q in xrange(quotient):
-                        audio_message.midi_messages.append(self.new_midi_note_off_message(
-                            q*self.inclusive_duration-start_init_pos))
-                        if remainder>0:
-                            audio_message.midi_messages.append(self.new_midi_note_on_message(
-                                q*self.inclusive_duration-start_init_pos))
+                    if start_pos%self.inclusive_duration ==0:
+                        audio_message.midi_messages.append(
+                            self.new_midi_note_off_message(elapsed_pos))
 
             if data is None:
                 data = numpy.zeros((frame_count, self.ChannelCount), dtype=numpy.float32)
             if start_from is None:
                 self.current_pos = start_pos
         else:
+            if self.midi_channel is not None and start_pos == 0:
+                audio_message.midi_messages.append(self.new_midi_note_on_message(0))
+
             data = self.samples[start_pos: start_pos+frame_count, :]
             start_pos += data.shape[0]
             if self.midi_channel is not None and start_pos == self.duration and data.shape[0]>0:
