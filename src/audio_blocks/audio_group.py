@@ -1,5 +1,6 @@
 import threading
 from audio_block import AudioBlock
+from ..commons import AudioMessage
 
 class AudioGroup(AudioBlock):
     def __init__(self):
@@ -29,7 +30,7 @@ class AudioGroup(AudioBlock):
         self.lock.release()
 
         self._samples = None
-        midi_messages = []
+        audio_message = AudioMessage()
         for i in xrange(block_count):
 
             self.lock.acquire()
@@ -42,9 +43,13 @@ class AudioGroup(AudioBlock):
             if not block:
                 break
 
-            block_samples, block_midi_messages = block.get_samples(frame_count, loop=self.LOOP_INFINITE)
-            if block_midi_messages:
-                midi_messages.extend(block_midi_messages)
+            block_message = block.get_samples(frame_count, loop=self.LOOP_INFINITE)
+            if block_message.midi_messages:
+                audio_message.midi_messages.extend(block_message.midi_messages)
+            if block_message.block_positions:
+                audio_message.block_positions.extend(block_message.block_positions)
+
+            block_samples = block_message.samples
             if block_samples is None:
                 continue
 
@@ -55,5 +60,6 @@ class AudioGroup(AudioBlock):
 
         if  self._samples is None:
             self._samples = self.blank_data.copy()
-        return [self._samples, midi_messages]
+        audio_message.samples = self._samples
+        return audio_message
 

@@ -90,14 +90,18 @@ class AudioServer(threading.Thread):
             data = self.audio_group.blank_data.copy()
         else:
             try:
-                data = self.audio_queue.get(block=False)
-                data, midi_messages = data[:]
-                if midi_messages:
-                    for midi_message in midi_messages:
+                audio_message = self.audio_queue.get(block=False)
+                data = audio_message.samples
+                if audio_message.midi_messages:
+                    for midi_message in audio_message.midi_messages:
                         self.midi_thread.midi_queue.put((
                             time.time()+(midi_message.delay*1./AudioBlock.SampleRate),
                             midi_message.mido_message
                         ))
+                if audio_message.block_positions:
+                    for block, pos in audio_message.block_positions:
+                        block.play_pos = pos
+
                 self.audio_queue.task_done()
             except Queue.Empty:
                 data = self.audio_group.blank_data.copy()

@@ -2,6 +2,7 @@ from audio_block import AudioBlock
 import threading
 import time
 import numpy
+from ..commons import AudioMessage
 
 class AudioTimedGroup(AudioBlock):
     def __init__(self):
@@ -97,7 +98,7 @@ class AudioTimedGroup(AudioBlock):
         if loop is None:
             loop = self.loop
 
-        midi_messages = []
+        audio_message = AudioMessage()
         if loop and use_loop:
             data = None
             spread = frame_count
@@ -115,18 +116,22 @@ class AudioTimedGroup(AudioBlock):
                     read_count = self.inclusive_duration-read_pos
                 else:
                     read_count = spread
-                seg, seg_midi_messages = self.get_samples(read_count, start_from=read_pos, use_loop=False)
-                if seg_midi_messages:
-                    for midi_message in seg_midi_messages:
+                seg_message = self.get_samples(read_count, start_from=read_pos, use_loop=False)
+                if seg_message.midi_messages:
+                    for midi_message in seg_message.midi_messages:
                         midi_message.increase_delay(data_count)
-                    midi_messages.extend(seg_midi_messages)
+                    audio_message.midi_messages.extend(seg_message.midi_messages)
+                if seg_message.block_positions:
+                    audio_message.block_positions.extend(seg_message.block_positions)
+
+                seg_samples = seg_message.samples
                 if data is None:
-                    data = seg
+                    data = seg_samples
                 else:
-                    data = numpy.append(data, seg, axis=0)
-                start_pos += seg.shape[0]
-                data_count += seg.shape[0]
-                spread -= seg.shape[0]
+                    data = numpy.append(data, seg_samples, axis=0)
+                start_pos += seg_samples.shape[0]
+                data_count += seg_samples.shape[0]
+                spread -= seg_samples.shape[0]
 
             if start_from is None:
                 self.current_pos = start_pos
@@ -135,7 +140,9 @@ class AudioTimedGroup(AudioBlock):
                 blank_shape = (frame_count - data.shape[0], AudioBlock.ChannelCount)
                 data = numpy.append(data, numpy.zeros(blank_shape, dtype=numpy.float32), axis=0)
 
-            return [data, midi_messages]
+            audio_message.block_positions.append([self, start_pos])
+            audio_message.samples = data
+            return audio_message
 
         samples = None
         for i in xrange(block_count):
@@ -170,14 +177,16 @@ class AudioTimedGroup(AudioBlock):
                 block_start_from = start_pos-block_start_pos
                 sub_frame_count = frame_count
 
-            seg, seg_midi_messages = block.get_samples(sub_frame_count, start_from=block_start_from)
-            if seg_midi_messages:
-                    midi_messages.extend(seg_midi_messages)
+            seg_message = block.get_samples(sub_frame_count, start_from=block_start_from)
+            if seg_message.midi_messages:
+                audio_message.midi_messages.extend(seg_message.midi_messages)
+            if seg_message.block_positions:
+                audio_message.block_positions.extend(seg_message.block_positions)
 
             if block_samples is None:
-                block_samples = seg
+                block_samples = seg_message.samples
             else:
-                block_samples = numpy.append(block_samples, seg, axis=0)
+                block_samples = numpy.append(block_samples, seg_message.samples, axis=0)
 
             if samples is None:
                 samples = block_samples
@@ -187,9 +196,13 @@ class AudioTimedGroup(AudioBlock):
         if  samples is None:
             samples = self.blank_data[:frame_count, :]
 
+        start_pos += frame_count
+
         if start_from is None:
-            self.current_pos = start_pos + frame_count
+            self.current_pos = start_pos
             if self.current_pos>self.duration:
                 self.current_pos = self.duration
 
-        return [samples, midi_messages]
+        audio_message.block_positions.append([self, start_pos])
+        audio_message.samples = samples
+        return audio_message

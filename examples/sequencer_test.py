@@ -30,13 +30,17 @@ import os
 for f in files.split("\n"):
     if not f:
         continue
-    file_block = AudioFileBlock(f)
+    file_block = AudioFileBlock(f, sample_count=0*sequencer.beat.get_div_sample(1))
     file_block.load_samples()
-    file_block.set_duration(sequencer.beat.get_div_sample(1))
+    #file_block.set_inclusive_duration(sequencer.beat.get_div_sample(1))
+
     group.add_block(file_block, at=t)
     group.set_block_name(file_block, os.path.basename(f))
     t += sequencer.beat.get_div_time(1) # file_block.get_time_duration()
     file_block.loop = None
+    if c== 0:
+        file_block.loop = file_block.LOOP_STRETCH
+        #file_block.loop = file_block.LOOP_INFINITE
     if True:
         if c==0:
             file_block.set_midi_channel(1)

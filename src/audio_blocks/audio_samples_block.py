@@ -1,5 +1,6 @@
 import numpy
 from audio_block import AudioBlock
+from ..commons import AudioMessage
 
 class AudioSamplesBlock(AudioBlock):
     def __init__(self, samples):
@@ -20,10 +21,10 @@ class AudioSamplesBlock(AudioBlock):
         if loop is None:
             loop = self.loop
 
+        audio_message = AudioMessage()
         data = None
-        midi_messages = []
         if self.midi_channel is not None and start_pos == 0:
-            midi_messages.append(self.new_midi_note_on_message(0))
+            audio_message.midi_messages.append(self.new_midi_note_on_message(0))
 
         if loop and use_loop:
             spread = frame_count
@@ -50,23 +51,27 @@ class AudioSamplesBlock(AudioBlock):
                     remainder = (start_init_pos+data.shape[0])%self.inclusive_duration
                     quotient = (start_init_pos+data.shape[0])//self.inclusive_duration
                     for q in xrange(quotient):
-                        midi_messages.append(self.new_midi_note_off_message(
+                        audio_message.midi_messages.append(self.new_midi_note_off_message(
                             q*self.inclusive_duration-start_init_pos))
                         if remainder>0:
-                            midi_messages.append(self.new_midi_note_on_message(
+                            audio_message.midi_messages.append(self.new_midi_note_on_message(
                                 q*self.inclusive_duration-start_init_pos))
 
+            if data is None:
+                data = numpy.zeros((frame_count, self.ChannelCount), dtype=numpy.float32)
             if start_from is None:
                 self.current_pos = start_pos
         else:
             data = self.samples[start_pos: start_pos+frame_count, :]
             start_pos += data.shape[0]
             if self.midi_channel is not None and start_pos == self.duration and data.shape[0]>0:
-                midi_messages.append(self.new_midi_note_off_message(data.shape[0]))
+                audio_message.midi_messages.append(self.new_midi_note_off_message(data.shape[0]))
             if start_from is None:
                 self.current_pos = start_pos
 
         if data.shape[0]<frame_count:
             blank_shape = (frame_count - data.shape[0], AudioBlock.ChannelCount)
             data = numpy.append(data, numpy.zeros(blank_shape, dtype=numpy.float32), axis=0)
-        return [data, midi_messages]
+        audio_message.samples = data
+        audio_message.block_positions.append((self, start_pos))
+        return audio_message

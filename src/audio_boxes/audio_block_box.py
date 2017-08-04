@@ -156,7 +156,7 @@ class AudioBlockBox(object):
         self.expander_box.draw(ctx)
 
     def show_current_position(self, ctx):
-        x = self.audio_block.current_pos*AudioBlockBox.PIXEL_PER_SAMPLE
+        x = self.audio_block.play_pos*AudioBlockBox.PIXEL_PER_SAMPLE
         ctx.save()
         self.pre_draw(ctx)
         ctx.move_to(x, 0)

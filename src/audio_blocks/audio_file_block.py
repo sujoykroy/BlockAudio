@@ -10,9 +10,9 @@ class AudioFileBlockCache(object):
     MEMORY_LIMIT = 500*1024*1024
 
 class AudioFileBlock(AudioSamplesBlock):
-    def __init__(self, filename):
+    def __init__(self, filename, sample_count=None):
         AudioSamplesBlock.__init__(self, samples=AudioBlock.get_blank_data(1))
-
+        self.sample_count = sample_count
         self.filename = filename
         self.last_access_at = None
         self.calculate_duration()
@@ -21,8 +21,11 @@ class AudioFileBlock(AudioSamplesBlock):
         AudioFileBlockCache.Files[self.filename] = self
 
     def calculate_duration(self):
-        audioclip = movie_editor.AudioFileClip(self.filename)
-        self.inclusive_duration = int(audioclip.duration*AudioBlock.SampleRate)
+        if self.sample_count:
+            self.inclusive_duration = self.sample_count
+        else:
+            audioclip = movie_editor.AudioFileClip(self.filename)
+            self.inclusive_duration = int(audioclip.duration*AudioBlock.SampleRate)
 
     def load_samples(self):
         self.last_access_at = time.time()
@@ -33,6 +36,13 @@ class AudioFileBlock(AudioSamplesBlock):
             self.samples = audioclip.to_soundarray(buffersize=1000).astype(numpy.float32)
         except IOError as e:
             self.samples = numpy.zeros((0, AudioBlock.ChannelCount), dtype=numpy.float32)
+
+        if self.sample_count:
+            self.samples = self.samples[:self.sample_count, :]
+            if self.samples.shape[0]<self.sample_count:
+                blank_count = self.sample_count-self.samples.shape[0]
+                blank_data = numpy.zeros((blank_count, self.samples.shape[1]), dtype=numpy.float32)
+                self.samples = numpy.append(self.samples, blank_data, axis=0)
 
         AudioFileBlockCache.TotalMemory  += self.samples.nbytes
         self.samples_loaded = True
