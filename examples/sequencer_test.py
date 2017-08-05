@@ -59,7 +59,7 @@ for f in files.split("\n"):
 group2 = AudioTimedGroup()
 file_instru = AudioFileInstru("/home/sujoy/Music/amsynth-out.wav")
 t = 0
-for nn in ["C5", "D5", "E5", "F5"]:
+for nn in ["C5", "C3", "E5", "F5"]:
     group2.add_block(file_instru.create_note_block(nn), t)
     t += sequencer.beat.get_div_time(1)
 

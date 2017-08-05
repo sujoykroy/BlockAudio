@@ -7,15 +7,17 @@ class AudioSamplesInstru(AudioInstru):
         AudioInstru.__init__(self)
         self.samples = samples
         self.base_note = MusicNote.get_note(base_note)
+        self.notes_samples = dict()
 
     def create_note_block(self, note):
-        if note != self.base_note.name or True:
+        if note not in self.notes_samples:
            note = MusicNote.get_note(note)
            factor = note.frequency/self.base_note.frequency
-           samples = SamplesProcessor.pitch_shift(self.samples, factor)
+           samples = SamplesProcessor.speed_up(self.samples, factor)
+           self.notes_samples[note.name] = samples
         else:
-            samples = self.samples
-            note = self.base_note
+            samples = self.notes_samples[note]
+
         note_block = AudioSamplesBlock(samples)
         note_block.set_music_note(note.name)
         return note_block

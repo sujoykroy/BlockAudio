@@ -30,14 +30,15 @@ class SamplesProcessor(object):
         return result
 
     @staticmethod
-    def pitch_shift(samples, factor, window_size=2048, hop_factor=1./4):
+    def pitch_shift(samples, factor, window_size=2048*24, hop_factor=1./8):
         hop_size = int(window_size*hop_factor)
-        window_size = 2**13
-        hop_size = 2**11
-        #return SamplesProcessor.speed_up(samples, factor)
-        stretched = []
+        #window_size = 2**13
+        #hop_size = 2**11
+        return SamplesProcessor.speed_up(samples, factor)
+        stretched = numpy.zeros(0, dtype=samples.dtype)
         for i in xrange(samples.shape[1]):
-            stretched.append(SamplesProcessor.stretch(samples[:, i], 1.0/factor, window_size, hop_size))
-        stretched = numpy.array(stretched)
+            strt = SamplesProcessor.stretch(samples[:, i], 1.0/factor, window_size, hop_size)
+            stretched = numpy.append(stretched, strt)
+        stretched.shape = (-1, samples.shape[1])
         return SamplesProcessor.speed_up(stretched[window_size:, :], factor)
 
