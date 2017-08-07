@@ -1,6 +1,7 @@
 from dawpy.editors import AudioSequencer
 from dawpy.audio_blocks import AudioTimedGroup, AudioFileBlock
-from dawpy.audio_blocks import AudioFileInstru
+from dawpy.audio_blocks import AudioFileInstru, AudioFormulaInstru
+from dawpy import formulators
 
 sequencer = AudioSequencer()
 
@@ -63,7 +64,15 @@ for nn in ["C5", "C3", "E5", "F5"]:
     group2.add_block(file_instru.create_note_block(nn), t)
     t += sequencer.beat.get_div_time(1)
 
-sequencer.load_block(group2)
+group3 = AudioTimedGroup()
+formula_instru = AudioFormulaInstru(formulators.SineFormulator())
+formula_instru.set_base_duration(sequencer.beat.get_div_time(1))
+t = 0
+for nn in ["C4", "C5", "E5", "F5"]:
+    group3.add_block(formula_instru.create_note_block(nn), t)
+    t += sequencer.beat.get_div_time(1)
+
+sequencer.load_block(group3)
 
 from gi.repository import Gtk
 Gtk.main()

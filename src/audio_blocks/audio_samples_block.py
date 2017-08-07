@@ -1,6 +1,7 @@
 import numpy
 from audio_block import AudioBlock
 from ..commons import AudioMessage
+import moviepy.editor as movie_editor
 
 class AudioSamplesBlock(AudioBlock):
     def __init__(self, samples):
@@ -83,3 +84,16 @@ class AudioSamplesBlock(AudioBlock):
         audio_message.samples = data
         audio_message.block_positions.append((self, start_pos))
         return audio_message
+
+    def save_to_file(self, filename):
+        clip = movie_editor.AudioClip(self.make_audio_frame, duration=self.get_time_duration())
+        clip.write_audiofile(filename, fps=AudioBlock.SampleRate)
+        del clip
+
+    def make_audio_frame(self, t):
+        t = (t*AudioBlock.SampleRate)
+        if isinstance(t, numpy.ndarray):
+           t = t.astype(numpy.int)
+        else:
+            t = int(t)
+        return self.samples[t, :]

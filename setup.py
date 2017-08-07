@@ -5,6 +5,7 @@ setup(
     package_dir = {'dawpy': 'src'},
     packages = ['dawpy',
                 'dawpy.commons',
+                'dawpy.formulators',
                 'dawpy.editors',
                 'dawpy.audio_blocks',
                 'dawpy.audio_boxes'],

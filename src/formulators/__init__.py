@@ -1,0 +1,1 @@
+from sine_formulator import SineFormulator
