@@ -93,7 +93,7 @@ class AudioSamplesBlock(AudioBlock):
     def make_audio_frame(self, t):
         t = (t*AudioBlock.SampleRate)
         if isinstance(t, numpy.ndarray):
-           t = t.astype(numpy.int)
+           t = t.astype(numpy.int32)
         else:
             t = int(t)
         return self.samples[t, :]
