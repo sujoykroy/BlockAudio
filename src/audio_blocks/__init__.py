@@ -3,6 +3,7 @@ from audio_block import AudioBlock
 from audio_file_block import AudioSamplesBlock
 from audio_file_block import AudioFileBlock
 from audio_timed_group import AudioTimedGroup
+from audio_keypad_group import AudioKeypadGroup
 
 from audio_file_instru import AudioFileInstru
 from audio_formula_instru import AudioFormulaInstru

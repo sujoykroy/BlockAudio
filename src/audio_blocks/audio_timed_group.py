@@ -86,7 +86,7 @@ class AudioTimedGroup(AudioBlock):
 
     def get_samples(self, frame_count, start_from=None, use_loop=True, loop=None):
         if self.paused:
-            return self.blank_data
+            return None
         self.lock.acquire()
         block_count = len(self.blocks)
         self.lock.release()
@@ -117,6 +117,8 @@ class AudioTimedGroup(AudioBlock):
                 else:
                     read_count = spread
                 seg_message = self.get_samples(read_count, start_from=read_pos, use_loop=False)
+                if seg_message is None:
+                    continue
                 if seg_message.midi_messages:
                     for midi_message in seg_message.midi_messages:
                         midi_message.increase_delay(data_count)

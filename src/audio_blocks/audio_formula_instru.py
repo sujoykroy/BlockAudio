@@ -16,6 +16,7 @@ class AudioFormulaInstru(AudioInstru):
             self.load_formulator(filepath)
         else:
             self.formulator = formulator
+        self.note_samples = dict()
 
     def load_formulator(self, filepath):
         if not os.path.isfile(filepath):
@@ -34,12 +35,16 @@ class AudioFormulaInstru(AudioInstru):
     def create_note_block(self, note):
         if self.formulator:
             note = MusicNote.get_note(note)
-            samples = self.formulator.get_note_samples(
-                            note, self.base_note, self.base_duration,
-                            AudioBlock.ChannelCount, AudioBlock.SampleRate)
-            if samples is not None and len(samples.shape)==1:
-                samples = numpy.repeat(samples, AudioBlock.ChannelCount)
-                samples.shape = (-1, AudioBlock.ChannelCount)
+            if note.name not in self.note_samples:
+                samples = self.formulator.get_note_samples(
+                                note, self.base_note, self.base_duration,
+                                AudioBlock.ChannelCount, AudioBlock.SampleRate)
+                if samples is not None and len(samples.shape)==1:
+                    samples = numpy.repeat(samples, AudioBlock.ChannelCount)
+                    samples.shape = (-1, AudioBlock.ChannelCount)
+                self.note_samples[note.name] = samples
+            else:
+                samples = self.note_samples.get(note.name)
         else:
             samples = numpy.zeros((1, AudioBlock.ChannelCount), dtype=numpy.float32)
         note_block = AudioSamplesBlock(samples)

@@ -39,16 +39,25 @@ class MidiThread(threading.Thread):
 class AudioServer(threading.Thread):
     PaManager = None
 
-    def __init__(self):
+    def __init__(self, buffer_mult=.9, host_api_name="jack"):
         super(AudioServer, self).__init__()
         self.midi_thread = MidiThread()
         self.pa_manager = pyaudio.PyAudio()
+
+        self.output_device_index = None
+        for i in xrange(self.pa_manager.get_host_api_count()):
+            host_api_info = self.pa_manager.get_host_api_info_by_index(i)
+            if host_api_info["name"].lower().find(host_api_name.lower()) == -1:
+                continue
+            for j in xrange(host_api_info["deviceCount"]):
+                device_info = self.pa_manager.get_device_info_by_host_api_device_index(i, j)
+                self.output_device_index = device_info["index"]
 
         self.audio_queue = Queue.Queue()
         self.audio_group = AudioGroup()
         self.should_exit = False
         self.paused = False
-
+        self.buffer_mult = buffer_mult
         self.start()
 
     def play(self):
@@ -70,16 +79,18 @@ class AudioServer(threading.Thread):
                 rate= int(AudioBlock.SampleRate),
                 output=True,
                 frames_per_buffer = AudioBlock.FramesPerBuffer,
-                stream_callback=self.stream_callback)
+                stream_callback=self.stream_callback,
+                output_device_index=self.output_device_index)
         self.stream.start_stream()
         self.audio_group.play()
         buffer_time = AudioBlock.FramesPerBuffer/float(AudioBlock.SampleRate)
-        period = buffer_time*.9
+        period = buffer_time*self.buffer_mult
         last_time = 0
         while not self.should_exit:
             if (time.time()-last_time)>period and not self.paused:
-                samples = self.audio_group.get_samples(AudioBlock.FramesPerBuffer)
-                self.audio_queue.put(samples, block=True)
+                audio_message = self.audio_group.get_samples(AudioBlock.FramesPerBuffer)
+                if audio_message is not None:
+                    self.audio_queue.put(audio_message, block=True)
             last_time = time.time()
             time.sleep(period)
         self.stream.stop_stream()

@@ -9,6 +9,7 @@ class AudioGroup(AudioBlock):
 
         self.lock = threading.RLock()
         self.blank_data = self.get_blank_data(AudioBlock.FramesPerBuffer)
+        self.block_loop = self.LOOP_INFINITE
 
     def add_block(self, block):
         self.lock.acquire()
@@ -24,7 +25,7 @@ class AudioGroup(AudioBlock):
 
     def get_samples(self, frame_count):
         if self.paused:
-            return self.blank_data.copy()
+            return None
         self.lock.acquire()
         block_count = len(self.blocks)
         self.lock.release()
@@ -43,7 +44,9 @@ class AudioGroup(AudioBlock):
             if not block:
                 break
 
-            block_message = block.get_samples(frame_count, loop=self.LOOP_INFINITE)
+            block_message = block.get_samples(frame_count, loop=self.block_loop)
+            if block_message is None:
+                continue
             if block_message.midi_messages:
                 audio_message.midi_messages.extend(block_message.midi_messages)
             if block_message.block_positions:

@@ -1,5 +1,6 @@
 class MusicNote(object):
-    Notes = dict()
+    ByNames = dict()
+    ByMidis = dict()
 
     def __init__(self, name, midi_value):
         self.name = name
@@ -8,11 +9,17 @@ class MusicNote(object):
 
     @staticmethod
     def get_note(note):
-        return MusicNote.Notes.get(note)
+        return MusicNote.ByNames.get(note)
+
+    def get_next_note(self, incre=1):
+        next_midi_value = self.midi_value + incre
+        if next_midi_value in self.ByMidis:
+            return self.ByMidis.get(next_midi_value)
+        return None
 
     @staticmethod
     def populate():
-        if MusicNote.Notes:
+        if MusicNote.ByNames:
             return
         note_names = "C C# D D# E F F# G G# A A# B".split(" ")
         for octave in xrange(11):
@@ -23,6 +30,7 @@ class MusicNote(object):
                 note = MusicNote(
                         name="{0}{1}".format(note_name, octave),
                         midi_value = octave*12+note_i)
-                MusicNote.Notes[note.name] = note
+                MusicNote.ByNames[note.name] = note
+                MusicNote.ByMidis[note.midi_value] = note
 
 MusicNote.populate()
