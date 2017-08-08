@@ -39,7 +39,7 @@ class AudioKeypadGroup(AudioGroup):
         self.block_loop = None
 
     def add_samples(self, samples):
-        block = AudioKeypadBlock(samples)
+        block = AudioKeypadBlock(samples.copy())
         self.add_block(block)
         return block
 

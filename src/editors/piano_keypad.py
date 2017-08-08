@@ -1,6 +1,11 @@
 from gi.repository import Gtk, Gdk
 from ..commons import KeyboardState, MusicNote, Color, draw_utils
 from ..audio_blocks import AudioServer, AudioKeypadGroup
+from ..audio_blocks import AudioFormulaInstru, AudioFileInstru
+from .. import formulators
+import multiprocessing
+import Queue
+import time
 
 from gi.repository import GObject
 GObject.threads_init()
@@ -96,9 +101,51 @@ class PianoBoard(object):
         board.set_maps("q 2 w 3 e r 5 t 6 y 7 u i 9 o 0 p [ = ] \\", "C4")
         return board
 
+class KeypadServerProcess(multiprocessing.Process):
+    def __init__(self, queue):
+        super(KeypadServerProcess, self).__init__()
+        self.queue = queue
+        self.should_exit = multiprocessing.Value('i', 0)
+        self.start()
+
+    def run(self):
+        self.audio_server = AudioServer(buffer_mult=1)
+        self.audio_server.play()
+
+        self.audio_keypad_group = AudioKeypadGroup()
+        self.audio_server.add_block(self.audio_keypad_group)
+        self.audio_samples_instru = None
+
+        formula_instru = AudioFormulaInstru(formulators.SineFormulator())
+        file_instru = AudioFileInstru("/home/sujoy/Music/amsynth-out.wav")
+        self.audio_samples_instru = formula_instru
+
+        self.active_blocks = dict()
+
+        while not self.should_exit.value:
+            try:
+                data = self.queue.get(block=False)
+            except Queue.Empty:
+                data = None
+            if data:
+                key, note_name = data[:]
+                if note_name:
+                    note_block = self.audio_samples_instru.create_note_block(note_name)
+                    audio_block = self.audio_keypad_group.add_samples(note_block.samples)
+                    self.active_blocks[key] = audio_block
+                elif key in self.active_blocks:
+                    self.active_blocks[key].end_smooth()
+                    del self.active_blocks[key]
+            time.sleep(.01)
+        self.audio_server.close()
+
+    def close(self):
+        with self.should_exit.get_lock():
+            self.should_exit.value += 1
+        self.join()
 
 class PianoKeypad(Gtk.Window):
-    def __init__(self, width=800, height=300):
+    def __init__(self, width=800, height=300, use_server_process=True):
         Gtk.Window.__init__(self, title="Piano Keypad", resizable=True)
         self.set_size_request(width, height)
         self.keyboard_state = KeyboardState()
@@ -126,12 +173,18 @@ class PianoKeypad(Gtk.Window):
 
         #self.mouse_point = Point(0, 0)
         self.pressed_keys = dict()
-        self.audio_server = AudioServer(buffer_mult=1.0)
-        self.audio_server.play()
 
-        self.audio_keypad_group = AudioKeypadGroup()
-        self.audio_server.add_block(self.audio_keypad_group)
-        self.audio_samples_instru = None
+        self.use_server_process = use_server_process
+        if not self.use_server_process:
+            self.audio_server = AudioServer(buffer_mult=1.0)
+            self.audio_server.play()
+
+            self.audio_keypad_group = AudioKeypadGroup()
+            self.audio_server.add_block(self.audio_keypad_group)
+            self.audio_samples_instru = None
+        else:
+            self.server_process_queue = multiprocessing.Queue()
+            self.server_process = KeypadServerProcess(self.server_process_queue)
         self.show_all()
 
     def set_instru(self, instru):
@@ -148,18 +201,25 @@ class PianoKeypad(Gtk.Window):
         if event.string not in self.pressed_keys:
             self.pressed_keys[event.string] = None
             piano_key = self.piano_board.piano_keys.get(event.string)
-            if piano_key and self.audio_samples_instru and piano_key.note:
-                note_block = self.audio_samples_instru.create_note_block(piano_key.note.name)
-                audio_block = self.audio_keypad_group.add_samples(note_block.samples)
-                self.pressed_keys[event.string] = audio_block
+            if not self.use_server_process:
+                if piano_key and self.audio_samples_instru and piano_key.note:
+                    note_block = self.audio_samples_instru.create_note_block(piano_key.note.name)
+                    audio_block = self.audio_keypad_group.add_samples(note_block.samples)
+                    self.pressed_keys[event.string] = audio_block
+            else:
+                if piano_key and piano_key.note:
+                    self.server_process_queue.put((event.string, piano_key.note.name))
             self.piano_board_area.queue_draw()
 
     def on_key_release(self, widget, event):
         self.keyboard_state.set_keypress(event.keyval, pressed=False)
         if event.string in self.pressed_keys:
-            audio_block = self.pressed_keys[event.string]
-            if audio_block:
-                audio_block.end_smooth()
+            if not self.use_server_process:
+                audio_block = self.pressed_keys[event.string]
+                if audio_block:
+                    audio_block.end_smooth()
+            else:
+                self.server_process_queue.put((event.string, ''))
             del self.pressed_keys[event.string]
             self.piano_board_area.queue_draw()
 
@@ -194,6 +254,10 @@ class PianoKeypad(Gtk.Window):
             ctx.restore()
 
     def quit(self, wiget, event):
-        if self.audio_server:
-            self.audio_server.close()
+        if not self.use_server_process:
+            if self.audio_server:
+                self.audio_server.close()
+        else:
+            if self.server_process:
+                self.server_process.close()
         Gtk.main_quit()

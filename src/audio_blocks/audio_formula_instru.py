@@ -50,6 +50,6 @@ class AudioFormulaInstru(AudioInstru):
         note_block = AudioSamplesBlock(samples)
         note_block.set_music_note(note.name)
 
-        note_block.save_to_file("/home/sujoy/Temporary/sound_" + note.name + ".wav")
+        #note_block.save_to_file("/home/sujoy/Temporary/sound_" + note.name + ".wav")
         return note_block
 

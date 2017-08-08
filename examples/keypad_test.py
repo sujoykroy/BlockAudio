@@ -6,7 +6,7 @@ from gi.repository import Gtk
 formula_instru = AudioFormulaInstru(formulators.SineFormulator())
 file_instru = AudioFileInstru("/home/sujoy/Music/amsynth-out.wav")
 
-keypad = PianoKeypad()
+keypad = PianoKeypad(use_server_process=not True)
 
-keypad.set_instru(file_instru)
+keypad.set_instru(formula_instru)
 Gtk.main()
