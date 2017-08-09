@@ -20,7 +20,16 @@ class AudioSequencer(Gtk.Window):
         self.instru_list = instru_list
         self.timed_group_list = timed_group_list
 
+        instru_list.append(AudioFileInstru("/home/sujoy/Music/clip1.wav"))
+
+        self.instru_list_label = Gtk.Label("Instruments")
+        self.instru_list_label.set_justify(Gtk.Justification.CENTER)
+
         self.instru_list_view = Gtk.TreeView()
+        self.instru_list_view.append_column(
+            Gtk.TreeViewColumn("Name", Gtk.CellRendererText(), text=0))
+        self.instru_list_view.set_headers_visible(False)
+
         self.add_file_instru_button = Gtk.Button("Add File Instrument")
         self.add_file_instru_button.connect("clicked", self.add_file_instru_button_clicked)
 
@@ -90,6 +99,8 @@ class AudioSequencer(Gtk.Window):
         self.blockinstru_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.blockinstru_box.set_size_request(100, -1)
         self.blockinstru_box.pack_start(
+                self.instru_list_label, expand=False, fill=False, padding=5)
+        self.blockinstru_box.pack_start(
                 self.instru_list_view, expand=False, fill=False, padding=5)
         self.blockinstru_box.pack_start(
                 self.add_file_instru_button, expand=False, fill=False, padding=5)
@@ -110,13 +121,26 @@ class AudioSequencer(Gtk.Window):
         self.root_box.pack_start(self.blockinstru_box, expand=False, fill=False, padding=5)
         self.root_box.pack_start(self.board_container, expand=True, fill=True, padding=5)
 
-
+        self.build_instru_list_view()
         self.show_all()
         self.pause_button.hide()
 
     def add_file_instru_button_clicked(self, widget):
         filename = gui_utils.FileOp.choose_file(self, "open", "audio")
-        print filename
+        if filename:
+            instru = AudioFileInstru(filename=filename)
+            self.instru_list.append(instru)
+            self.build_instru_list_view()
+
+    def build_instru_list_view(self):
+        instru_store = Gtk.TreeStore(str, object)
+
+        instru_dict = dict()
+        for instru in self.instru_list:
+            instru_dict[instru.get_name()] = instru
+        for name in sorted(instru_dict.keys()):
+            instru_store.append(None, [name, instru_dict[name]])
+        self.instru_list_view.set_model(instru_store)
 
     def play_button_clicked(self, wiget):
         if not self.audio_block:
