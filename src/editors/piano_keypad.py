@@ -176,7 +176,7 @@ class PianoKeypad(Gtk.Window):
 
         self.use_server_process = use_server_process
         if not self.use_server_process:
-            self.audio_server = AudioServer(buffer_mult=1.0)
+            self.audio_server = AudioServer(buffer_mult=.98)
             self.audio_server.play()
 
             self.audio_keypad_group = AudioKeypadGroup()

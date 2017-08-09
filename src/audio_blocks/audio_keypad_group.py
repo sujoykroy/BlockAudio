@@ -18,9 +18,13 @@ class AudioKeypadBlock(AudioSamplesBlock):
         if self.is_stopped():
             return
 
-        seg = min(self.duration-self.current_pos, 20)
-        env_y =  [1, .5, 0]
-        env_x = [0, seg*.5, seg-1]
+
+        start_pos = self.current_pos-20
+        if start_pos<0:
+            start_pos = 0
+        seg = min(self.duration-start_pos, int(self.SampleRate*.25))
+        env_y =  [1, .75, .5, 0]
+        env_x = numpy.round([0, seg*.25, seg*.5, seg-1])
 
         interp = scipy.interpolate.interp1d(env_x, env_y, bounds_error=False, kind="linear")
         xs = numpy.arange(0, seg)
@@ -28,10 +32,11 @@ class AudioKeypadBlock(AudioSamplesBlock):
         if len(self.samples.shape)>1:
             env = numpy.repeat(env, self.samples.shape[1]).reshape(-1, self.samples.shape[1])
 
-        self.samples[self.current_pos:self.current_pos+seg, :] = \
-            self.samples[self.current_pos:self.current_pos+seg, :].copy()*env
-        self.duration = self.current_pos+seg
-        self.inclusive_duration = self.current_pos+seg
+        self.samples[start_pos:start_pos+seg, :] = self.samples[start_pos:start_pos+seg, :].copy()*env
+        self.samples[start_pos+seg:, :] = 0
+        self.duration = start_pos+seg
+        self.inclusive_duration = self.duration
+        #self.save_to_file("/home/sujoy/Temporary/end_smooth.wav")
 
 class AudioKeypadGroup(AudioGroup):
     def __init__(self):
