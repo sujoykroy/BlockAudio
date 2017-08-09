@@ -5,6 +5,7 @@ setup(
     package_dir = {'blockaudio': 'src'},
     packages = ['blockaudio',
                 'blockaudio.commons',
+                'blockaudio.gui_utils',
                 'blockaudio.formulators',
                 'blockaudio.editors',
                 'blockaudio.audio_blocks',

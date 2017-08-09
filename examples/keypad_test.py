@@ -1,6 +1,6 @@
-from dawpy.editors import PianoKeypad
-from dawpy import formulators
-from dawpy.audio_blocks import AudioFormulaInstru, AudioFileInstru
+from blockaudio.editors import PianoKeypad
+from blockaudio import formulators
+from blockaudio.audio_blocks import AudioFormulaInstru, AudioFileInstru
 from gi.repository import Gtk
 
 formula_instru = AudioFormulaInstru(formulators.SineFormulator())

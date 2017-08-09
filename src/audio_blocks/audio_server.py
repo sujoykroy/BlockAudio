@@ -38,8 +38,22 @@ class MidiThread(threading.Thread):
 
 class AudioServer(threading.Thread):
     PaManager = None
+    Servers = []
 
-    def __init__(self, buffer_mult=.9, host_api_name="jack"):
+    @staticmethod
+    def get_default():
+        if AudioServer.Servers:
+            return AudioServer.Servers[0]
+        return AudioServer()
+
+    @staticmethod
+    def close_all():
+        while len(AudioServer.Servers)>0:
+            server = AudioServer.Servers[0]
+            server.close()
+        del AudioServer.Servers[:]
+
+    def __init__(self, buffer_mult=.95, host_api_name="jack"):
         super(AudioServer, self).__init__()
         self.midi_thread = MidiThread()
         self.pa_manager = pyaudio.PyAudio()
@@ -58,6 +72,7 @@ class AudioServer(threading.Thread):
         self.should_exit = False
         self.paused = False
         self.buffer_mult = buffer_mult
+        AudioServer.Servers.append(self)
         self.start()
 
     def play(self):
@@ -123,4 +138,5 @@ class AudioServer(threading.Thread):
         self.should_exit = True
         if self.is_alive():
             self.join()
+        AudioServer.Servers.remove(self)
         self.pa_manager.terminate()
