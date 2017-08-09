@@ -1,13 +1,13 @@
 from distutils.core import setup
 setup(
-    name = 'dawpy',
+    name = 'blockaudio',
     version = '0.1',
-    package_dir = {'dawpy': 'src'},
-    packages = ['dawpy',
-                'dawpy.commons',
-                'dawpy.formulators',
-                'dawpy.editors',
-                'dawpy.audio_blocks',
-                'dawpy.audio_boxes'],
+    package_dir = {'blockaudio': 'src'},
+    packages = ['blockaudio',
+                'blockaudio.commons',
+                'blockaudio.formulators',
+                'blockaudio.editors',
+                'blockaudio.audio_blocks',
+                'blockaudio.audio_boxes'],
     package_data = {}
 )

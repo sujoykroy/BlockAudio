@@ -1,4 +1,4 @@
-from dawpy.editors import CommonInterpEditor
+from blockaudio.editors import CommonInterpEditor
 
 editor = CommonInterpEditor()
 

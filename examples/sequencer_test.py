@@ -1,7 +1,7 @@
-from dawpy.editors import AudioSequencer
-from dawpy.audio_blocks import AudioTimedGroup, AudioFileBlock
-from dawpy.audio_blocks import AudioFileInstru, AudioFormulaInstru
-from dawpy import formulators
+from blockaudio.editors import AudioSequencer
+from blockaudio.audio_blocks import AudioTimedGroup, AudioFileBlock
+from blockaudio.audio_blocks import AudioFileInstru, AudioFormulaInstru
+from blockaudio import formulators
 
 sequencer = AudioSequencer()
 
