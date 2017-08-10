@@ -1,6 +1,7 @@
 from gi.repository import Gtk, Gdk
 from ..audio_boxes import *
 from ..audio_blocks import *
+from ..formulators import *
 from ..commons import Point, Beat
 from .. import gui_utils
 
@@ -16,13 +17,14 @@ class AudioSequencer(Gtk.Window):
         if not instru_list:
             instru_list = []
         if not timed_group_list:
-            timed_group_list = []
+            timed_group = AudioTimedGroup()
+            timed_group.set_name("Main")
+            timed_group_list = [timed_group]
         self.instru_list = instru_list
         self.timed_group_list = timed_group_list
 
-        instru_list.append(AudioFileInstru("/home/sujoy/Music/clip1.wav"))
-
         self.instru_list_label = Gtk.Label("Instruments")
+        self.instru_list_label.set_pattern("___________")
         self.instru_list_label.set_justify(Gtk.Justification.CENTER)
 
         self.instru_list_view = Gtk.TreeView()
@@ -33,15 +35,26 @@ class AudioSequencer(Gtk.Window):
         self.add_file_instru_button = Gtk.Button("Add File Instrument")
         self.add_file_instru_button.connect("clicked", self.add_file_instru_button_clicked)
 
+        self.formula_list_label = Gtk.Label("Formulators")
+        self.formula_list_label.set_pattern("___________")
         self.formula_combo_box = gui_utils.NameValueComboBox()
+        self.formula_combo_box.build_and_set_model([
+            ["Sine", SineFormulator]
+        ])
         self.add_formula_instru_button = Gtk.Button("Add Formula Instrument")
-        #self.add_formula_instru_button.connect("connect", self.add_formula_instru_button_clicked)
+        self.add_formula_instru_button.connect("clicked", self.add_formula_instru_button_clicked)
 
-        self.delete_instru_button = Gtk.Button("Delete Instrument")
+        self.timed_group_list_label = Gtk.Label("Block Groups")
+        self.timed_group_list_label.set_pattern("____________")
+        self.timed_group_list_label.set_justify(Gtk.Justification.CENTER)
 
         self.timed_group_list_view = Gtk.TreeView()
+        self.timed_group_list_view.append_column(
+            Gtk.TreeViewColumn("Name", Gtk.CellRendererText(), text=0))
+        self.timed_group_list_view.set_headers_visible(False)
+
         self.add_block_group_button = Gtk.Button("Add Block Group")
-        self.delete_block_group_button = Gtk.Button("Delete Block Group")
+        self.add_block_group_button.connect("clicked", self.add_block_group_button_clicked)
 
         self.play_control_box = Gtk.HBox()
 
@@ -98,30 +111,44 @@ class AudioSequencer(Gtk.Window):
 
         self.blockinstru_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.blockinstru_box.set_size_request(100, -1)
+
         self.blockinstru_box.pack_start(
                 self.instru_list_label, expand=False, fill=False, padding=5)
+
+        self.instru_list_view_container = Gtk.ScrolledWindow()
+        self.instru_list_view_container.add_with_viewport(self.instru_list_view)
+
+
         self.blockinstru_box.pack_start(
-                self.instru_list_view, expand=False, fill=False, padding=5)
+                self.instru_list_view_container, expand=True, fill=True, padding=0)
         self.blockinstru_box.pack_start(
                 self.add_file_instru_button, expand=False, fill=False, padding=5)
+
         self.blockinstru_box.pack_start(
-                self.formula_combo_box, expand=False, fill=False, padding=5)
+                self.formula_list_label, expand=False, fill=False, padding=5)
+
+        self.blockinstru_box.pack_start(
+                self.formula_combo_box, expand=False, fill=False, padding=0)
         self.blockinstru_box.pack_start(
                 self.add_formula_instru_button, expand=False, fill=False, padding=5)
 
-        self.block_group_add_delete_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.block_group_add_delete_box.pack_start(
-                self.add_block_group_button, expand=True, fill=True, padding=5)
-        self.block_group_add_delete_box.pack_start(
-                self.delete_block_group_button, expand=True, fill=True, padding=5)
 
         self.blockinstru_box.pack_start(
-                self.block_group_add_delete_box, expand=False, fill=False, padding=5)
+                self.timed_group_list_label, expand=False, fill=False, padding=5)
+
+        self.timed_group_list_view_container = Gtk.ScrolledWindow()
+        self.timed_group_list_view_container.add_with_viewport(self.timed_group_list_view)
+
+        self.blockinstru_box.pack_start(
+                self.timed_group_list_view_container, expand=True, fill=True, padding=5)
+        self.blockinstru_box.pack_start(
+                self.add_block_group_button, expand=False, fill=False, padding=5)
 
         self.root_box.pack_start(self.blockinstru_box, expand=False, fill=False, padding=5)
         self.root_box.pack_start(self.board_container, expand=True, fill=True, padding=5)
 
         self.build_instru_list_view()
+        self.build_timed_group_list_view()
         self.show_all()
         self.pause_button.hide()
 
@@ -132,6 +159,18 @@ class AudioSequencer(Gtk.Window):
             self.instru_list.append(instru)
             self.build_instru_list_view()
 
+    def add_formula_instru_button_clicked(self, widget):
+        formulator_class = self.formula_combo_box.get_value()
+        if formulator_class:
+            instru = AudioFormulaInstru(formulator=formulator_class())
+            self.instru_list.append(instru)
+            self.build_instru_list_view()
+
+    def add_block_group_button_clicked(self, widget):
+        timed_group = AudioTimedGroup()
+        self.timed_group_list.append(timed_group)
+        self.build_timed_group_list_view()
+
     def build_instru_list_view(self):
         instru_store = Gtk.TreeStore(str, object)
 
@@ -141,6 +180,16 @@ class AudioSequencer(Gtk.Window):
         for name in sorted(instru_dict.keys()):
             instru_store.append(None, [name, instru_dict[name]])
         self.instru_list_view.set_model(instru_store)
+
+    def build_timed_group_list_view(self):
+        group_store = Gtk.TreeStore(str, object)
+
+        group_dict = dict()
+        for group in self.timed_group_list:
+            group_dict[group.get_name()] = group
+        for name in sorted(group_dict.keys()):
+            group_store.append(None, [name, group_dict[name]])
+        self.timed_group_list_view.set_model(group_store)
 
     def play_button_clicked(self, wiget):
         if not self.audio_block:
