@@ -91,10 +91,7 @@ def draw_text(ctx, text,
         ctx.scale(scale_x, scale_y)
         draw_rounded_rectangle(ctx, 0, 0, w+2*padding, h+2*padding, corner)
         ctx.restore()
-        if isinstance(back_color, GradientColor):
-            draw_fill(ctx, back_color.get_pattern_for(0, 0, w+2*padding, 0))
-        else:
-            draw_fill(ctx, back_color)
+        draw_fill(ctx, back_color)
 
     if border_color:
         ctx.save()
@@ -103,16 +100,11 @@ def draw_text(ctx, text,
         ctx.scale(scale_x, scale_y)
         draw_rounded_rectangle(ctx, 0, 0, w+2*padding, h+2*padding, corner)
         ctx.restore()
-        if isinstance(border_color, GradientColor):
-            draw_stroke(ctx, border_width, border_color.get_pattern(0, 0, w+2*padding, 0))
-        else:
-            draw_stroke(ctx, border_width, border_color)
+        draw_stroke(ctx, border_width, border_color)
     if not text_color:
         ctx.set_source_rgba(0,0,0,1)
     elif isinstance(text_color, Color):
         ctx.set_source_rgba(*text_color.get_array())
-    elif isinstance(text_color, GradientColor):
-        ctx.set_source(text_color.get_pattern_for(0, 0, w+2*padding, 0))
     elif type(text_color) is str:
         ctx.set_source_rgba(*Color.from_html(text_color).get_array())
 
@@ -128,3 +120,26 @@ def draw_text(ctx, text,
     ctx.restore()
 
     return (x, y, w+2*padding, h+2*padding)
+
+def draw_rounded_rectangle(ctx, x, y, w, h, r=20):
+    # This is just one of the samples from
+    # http://www.cairographics.org/cookbook/roundedrectangles/
+    #   A****BQ
+    #  H      C
+    #  *      *
+    #  G      D
+    #   F****E
+    if r == 0:
+        ctx.rectangle(x, y, w, h)
+    else:
+        ctx.new_path()
+        ctx.move_to(x+r,y)                      # Move to A
+        ctx.line_to(x+w-r,y)                    # Straight line to B
+        ctx.arc(x+w-r,y+r, r, 3*math.pi/2, 4*math.pi/2)       # Curve to C, Control points are both at Q
+        ctx.line_to(x+w,y+h-r)                  # Move to D
+        ctx.arc(x+w-r,y+h-r, r, 0*math.pi/2, 1*math.pi/2) # Curve to E
+        ctx.line_to(x+r,y+h)                    # Line to F
+        ctx.arc(x+r,y+h-r, r, 1*math.pi/2, 2*math.pi/2)# Curve to G
+        ctx.line_to(x,y+r)                      # Line to H
+        ctx.arc(x+r,y+r, r, 2*math.pi/2, 3*math.pi/2)# Curve to A
+        ctx.close_path()

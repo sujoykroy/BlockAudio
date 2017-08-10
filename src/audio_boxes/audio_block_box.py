@@ -123,6 +123,12 @@ class AudioBlockBox(object):
         point.translate(self.x, self.y)
         return point
 
+    def abs_reverse_transform_point(self, point):
+        point = self.reverse_transform_point(point)
+        if self.parent_box:
+            point = self.parent_box.abs_reverse_transform_point(point)
+        return point
+
     def get_rect(self, left_top, right_bottom):
         left_top = self.transform_point(left_top)
         right_bottom = self.transform_point(right_bottom)
@@ -193,33 +199,18 @@ class AudioBlockBox(object):
                 if not self.audio_block.loop:
                     break
 
-        ctx.save()
-        self.pre_draw(ctx)
-        pangocairo_context = pangocairo.CairoContext(ctx)
-        pangocairo_context.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
-
-        desc_layout = pangocairo_context.create_layout()
-        font = pango.FontDescription(self.FontName)
-        desc_layout.set_wrap(pango.WRAP_WORD)
-        desc_layout.set_font_description(font)
-        desc_layout.set_alignment(pango.ALIGN_LEFT)
-
         desc = self.audio_block.get_description()
-        desc_layout.set_markup(desc)
+        text_start_point = self.abs_reverse_transform_point(Point(0, 0))
+        text_end_point = self.abs_reverse_transform_point(Point(self.width, self.height))
+        text_size = text_end_point.diff(text_start_point)
+        text_size.translate(-5,-5)
+        draw_utils.draw_text(ctx, desc,
+                    text_start_point.x, text_start_point.y,
+                    font_name=self.FontName,
+                    width=text_size.x, fit_width=True,
+                    height=text_size.y, fit_height=True,
+                    text_color="000000")
 
-        desc_width, desc_height = desc_layout.get_pixel_extents()[1][2:]
-        padding = 5
-
-        if desc_width<self.width-2*padding:
-            scale_x = (self.width-2*padding)/desc_width
-            ctx.scale(scale_x, 1)
-        if desc_height<self.height-2*padding:
-            scale_y = (self.height-2*padding)/self.height
-            ctx.scale(1, scale_y)
-
-        pangocairo_context.update_layout(desc_layout)
-        pangocairo_context.show_layout(desc_layout)
-        ctx.restore()
 
         ctx.save()
         self.pre_draw(ctx)
@@ -274,7 +265,7 @@ class AudioBlockBox(object):
             return self.image
 
         if isinstance(self.audio_block, AudioSamplesBlock):
-            bw = 100
+            bw = 200
             bh = 50
             self.image = cairo.ImageSurface(cairo.FORMAT_ARGB32, bw, bh)
             ctx = cairo.Context(self.image)

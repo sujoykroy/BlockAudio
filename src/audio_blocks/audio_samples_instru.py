@@ -19,6 +19,7 @@ class AudioSamplesInstru(AudioInstru):
             samples = self.notes_samples[note.name]
 
         note_block = AudioSamplesBlock(samples)
+        note_block.set_instru(self)
         note_block.set_music_note(note.name)
         return note_block
 

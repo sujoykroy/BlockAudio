@@ -31,3 +31,5 @@ class AudioInstru(object):
     def __hash__(self):
         return self.id_num
 
+    def get_description(self):
+        return self.name

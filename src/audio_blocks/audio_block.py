@@ -31,6 +31,7 @@ class AudioBlock(object):
         self.midi_channel = None
         self.midi_velocity = 64
         self.play_pos = 0
+        self.instru = None
 
         self.id_num = AudioBlock.IdSeed
         AudioBlock.IdSeed += 1
@@ -41,6 +42,10 @@ class AudioBlock(object):
 
     def set_midi_channel(self, channel):
         self.midi_channel = channel
+
+
+    def set_instru(self, instru):
+        self.instru = instru
 
     def set_note(self, note):
         self.music_note = note
@@ -90,6 +95,10 @@ class AudioBlock(object):
         return AudioMessage(self.get_blank_data(frame_count))
 
     def get_description(self):
+        if self.instru:
+            desc = self.instru.get_description()
+            desc += "\n" + self.music_note
+            return desc
         return self.name
 
     @staticmethod
