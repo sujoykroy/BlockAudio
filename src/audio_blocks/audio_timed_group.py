@@ -13,7 +13,7 @@ class AudioTimedGroup(AudioBlock):
         self.lock = threading.RLock()
         self.blank_data = self.get_blank_data(AudioBlock.FramesPerBuffer)
 
-    def add_block(self, block, at, stretch=True, sample_unit=False):
+    def add_block(self, block, at, sample_unit=False):
         ret = True
         self.lock.acquire()
         if not sample_unit:
@@ -26,11 +26,9 @@ class AudioTimedGroup(AudioBlock):
         self.blocks_positions[block.get_id()]=at
         self.lock.release()
         self.calculate_duration()
-        if stretch:
-            self.duration = self.inclusive_duration
         return ret
 
-    def remove_block(self, block, stretch=True):
+    def remove_block(self, block):
         self.lock.acquire()
         if block in self.blocks:
             index = self.blocks.index(block)
@@ -38,8 +36,6 @@ class AudioTimedGroup(AudioBlock):
             del self.blocks_positions[block.get_id()]
         self.lock.release()
         self.calculate_duration()
-        if stretch:
-            self.duration = self.inclusive_duration
 
     def set_block_name(self, block, name):
         for existing_block in self.blocks:
@@ -54,12 +50,14 @@ class AudioTimedGroup(AudioBlock):
         self.lock.acquire()
         self.blocks_positions[block.get_id()] = pos
         self.lock.release()
+        self.calculate_duration()
 
     def stretch_block_to(self, block, end_pos):
         self.lock.acquire()
         start_pos = self.blocks_positions[block.get_id()]
         block.set_duration(end_pos-start_pos)
         self.lock.release()
+        self.calculate_duration()
 
     def calculate_duration(self):
         self.lock.acquire()
@@ -83,6 +81,7 @@ class AudioTimedGroup(AudioBlock):
             if end_at>duration:
                 duration = end_at
         self.inclusive_duration = duration
+        super(AudioTimedGroup, self).calculate_duration()
 
     def get_samples(self, frame_count, start_from=None, use_loop=True, loop=None):
         if self.paused:

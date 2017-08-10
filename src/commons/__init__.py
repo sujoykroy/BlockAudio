@@ -1,4 +1,5 @@
 from point import Point
+from rect import Rect
 from colors import Color
 from beat import Beat
 from midi_message import MidiMessage

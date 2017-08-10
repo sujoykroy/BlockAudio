@@ -3,7 +3,8 @@ from blockaudio.audio_blocks import AudioTimedGroup, AudioFileBlock
 from blockaudio.audio_blocks import AudioFileInstru, AudioFormulaInstru
 from blockaudio import formulators
 
-sequencer = AudioSequencer()
+sequencer = AudioSequencer(
+    instru_list=AudioFileInstru.load("/usr/share/hydrogen/data/drumkits/"))
 
 files="""
 /usr/share/hydrogen/data/drumkits/HipHop-2/kick_1.wav

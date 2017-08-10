@@ -25,6 +25,7 @@ class AudioBlock(object):
         self.loop = self.LOOP_STRETCH
         self.duration = 0
         self.inclusive_duration = 0
+        self.auto_fit_duration = True
         self.current_pos = 0
         self.music_note = "C5"
         self.midi_channel = None
@@ -60,6 +61,7 @@ class AudioBlock(object):
     def set_duration(self, duration):
         if duration<=0:
             return
+        self.auto_fit_duration = False
         self.duration = duration
 
     def get_id(self):
@@ -78,7 +80,8 @@ class AudioBlock(object):
         self.paused = True
 
     def calculate_duration(self):
-        return self.duration
+        if self.auto_fit_duration:
+            self.duration = self.inclusive_duration
 
     def get_time_duration(self):
         return self.duration/AudioBlock.SampleRate

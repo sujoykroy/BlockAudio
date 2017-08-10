@@ -1,5 +1,6 @@
-from ..commons.colors import Color
-from ..commons.point import Point
+from ..commons import Color
+from ..commons import Point
+from ..commons import Rect
 from ..commons import draw_utils
 from expander_box import ExpanderBox
 import cairo
@@ -46,14 +47,86 @@ class AudioBlockBox(object):
     def get_position(self):
         return Point(self.x, self.y)
 
+    def set_position(self, point, rect=None):
+        self.x = point.x
+        self.y = point.y
+        if rect:
+            scaled_width = self.scale_x*self.width
+            scaled_height = self.scale_y*self.height
+            if scaled_width<rect.width:
+                self.x = rect.left
+            else:
+                if self.x>rect.left:
+                    self.x = rect.left
+                elif self.x+scaled_width<rect.left+rect.width:
+                    self.x = rect.left+rect.width-scaled_width
+            if scaled_height<rect.height:
+                self.y = rect.top
+            else:
+                if self.y>rect.top:
+                    self.y = rect.top
+                elif self.y+scaled_height<rect.top+rect.height:
+                    self.y = rect.top+rect.height-scaled_height
+
     def update_size(self):
         self.width = self.audio_block.duration*AudioBlockBox.PIXEL_PER_SAMPLE
+
+    def zoom_x(self, mult, center):
+        rel_center = self.transform_point(center)
+        self.scale_x *= mult
+        after_center = self.reverse_transform_point(rel_center)
+        shift = after_center.diff(center)
+        self.x -= shift.x
+        if self.x>0:
+            self.x = 0
+        self.y -= shift.y
+
+    def set_scroll_x(self, frac, rect):
+        scaled_width = self.width*self.scale_x
+        extra_width = scaled_width-rect.width
+        if extra_width<=0:
+            return
+        self.x = -extra_width*frac
+
+    def get_scroll_x(self, rect):
+        scaled_width = self.width*self.scale_x
+        extra_width = scaled_width-rect.width
+        if extra_width<=0:
+            return 0.
+        frac = -self.x*1.0/extra_width
+        return frac
+
+    def set_scroll_y(self, frac, rect):
+        scaled_height = self.height*self.scale_y
+        extra_height = scaled_height-rect.height
+        if extra_height<=0:
+            return
+        self.y = -extra_height*frac
+
+    def get_scroll_y(self, rect):
+        scaled_height = self.height*self.scale_y
+        extra_height = scaled_height-rect.height
+        if extra_height<=0:
+            return 0.
+        frac = -self.y*1.0/extra_height
+        return frac
 
     def transform_point(self, point):
         point = point.copy()
         point.translate(-self.x, -self.y)
         point.scale(1./self.scale_x, 1./self.scale_y)
         return point
+
+    def reverse_transform_point(self, point):
+        point = point.copy()
+        point.scale(self.scale_x, self.scale_y)
+        point.translate(self.x, self.y)
+        return point
+
+    def get_rect(self, left_top, right_bottom):
+        left_top = self.transform_point(left_top)
+        right_bottom = self.transform_point(right_bottom)
+        return Rect(left_top.x, left_top.y, right_bottom.x-left_top.x, right_bottom.y-left_top.y)
 
     def is_within(self, point):
         return self.x<=point.x<=self.x+self.width and self.y<=point.y<=self.y+self.height
@@ -63,18 +136,19 @@ class AudioBlockBox(object):
             return self.expander_box
         return None
 
-    def set_size(self, width, height):
+    def set_size(self, width, height=None):
         if width<self.width:
             self.scale_x = float(width)/self.width
         else:
             self.scale_x = 1.
-        if height<self.height:
-            self.scale_y = float(height)/self.height
-        else:
-            self.scale_y = 1.
+        if height:
+            if height<self.height:
+                self.scale_y = float(height)/self.height
+            else:
+                self.scale_y = 1.
 
     def __eq__(self, other):
-        return isinstance(self, AudioBlockBox) and other.id_num == self.id_num
+        return isinstance(other, AudioBlockBox) and other.id_num == self.id_num
 
     def pre_draw(self, ctx):
         if self.parent_box:
