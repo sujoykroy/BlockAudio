@@ -18,6 +18,14 @@ class MusicNote(object):
         return None
 
     @staticmethod
+    def get_names():
+        names = []
+        for midi_value in sorted(MusicNote.ByMidis.keys()):
+            note = MusicNote.ByMidis.get(midi_value)
+            names.append(note.name)
+        return names
+
+    @staticmethod
     def populate():
         if MusicNote.ByNames:
             return

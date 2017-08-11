@@ -203,11 +203,22 @@ class AudioBlockBox(object):
         desc = self.audio_block.get_description()
         text_start_point = self.abs_reverse_transform_point(Point(0, 0))
         text_start_point.x += self.head_box.abs_width
-        draw_utils.draw_text(ctx, desc,
+        desc_rect = draw_utils.draw_text(ctx, desc,
                     text_start_point.x, text_start_point.y,
                     corner=2, padding=2,
                     font_name=self.FontName,
-                    height=20, fit_height=True,
+                    height=10, fit_height=True,
+                    border_color = self.DescBorderColor,
+                    back_color=self.DescFillColor,
+                    text_color=self.DescTextColor)
+
+        if isinstance(self.audio_block, AudioSamplesBlock):
+            draw_utils.draw_text(ctx, self.audio_block.music_note,
+                    text_start_point.x,
+                    text_start_point.y+15,
+                    corner=2, padding=2,
+                    font_name=self.FontName,
+                    height=10, fit_height=True,
                     border_color = self.DescBorderColor,
                     back_color=self.DescFillColor,
                     text_color=self.DescTextColor)

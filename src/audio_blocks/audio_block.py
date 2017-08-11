@@ -98,7 +98,6 @@ class AudioBlock(object):
     def get_description(self):
         if self.instru:
             desc = self.instru.get_description()
-            desc += "\n" + self.music_note
             return desc
         return self.name
 

@@ -1,4 +1,5 @@
 from colors import Color
+from rect import Rect
 import pango, pangocairo, cairo, math
 
 def set_default_line_style(ctx):
@@ -130,7 +131,7 @@ def draw_text(ctx, text,
 
     ctx.restore()
 
-    return (x, y, w+2*padding, h+2*padding)
+    return Rect(x, y, w+2*padding, h+2*padding)
 
 def draw_rounded_rectangle(ctx, x, y, w, h, r=20):
     # This is just one of the samples from

@@ -3,6 +3,7 @@ from ..audio_boxes import *
 from ..audio_blocks import *
 from ..formulators import *
 from ..commons import Point, Beat, KeyboardState, Rect
+from ..commons import MusicNote
 from .. import gui_utils
 
 from gi.repository import GObject
@@ -103,6 +104,16 @@ class AudioSequencer(Gtk.Window):
         self.timed_group_editor_hscrollbar.connect(
             "value-changed", self.on_timed_group_editor_scrollbar_value_changed, "horiz")
 
+        self.audio_block_edit_box = Gtk.Grid()
+        self.audio_block_note_list = gui_utils.NameValueComboBox()
+        self.audio_block_note_list.build_and_set_model(MusicNote.get_names())
+        self.audio_block_note_list.connect("changed", self.audio_block_note_list_changed)
+
+        self.audio_block_edit_box.attach(
+                Gtk.Label("Note"), left=1, top=1, width=1, height=1)
+        self.audio_block_edit_box.attach(
+                self.audio_block_note_list, left=2, top=1, width=1, height=1)
+
         self.audio_block = None
         self.block_box = None
         self.audio_server = None
@@ -141,7 +152,6 @@ class AudioSequencer(Gtk.Window):
         self.blockinstru_box.pack_start(
                 self.add_formula_instru_button, expand=False, fill=False, padding=5)
 
-
         self.blockinstru_box.pack_start(
                 self.timed_group_list_label, expand=False, fill=False, padding=5)
 
@@ -153,7 +163,6 @@ class AudioSequencer(Gtk.Window):
         self.blockinstru_box.pack_end(
                 self.add_block_group_button, expand=False, fill=False, padding=0)
 
-
         self.instru_hcontainer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.instru_hcontainer.pack_start(
                 self.timed_group_editor, expand=True, fill=True, padding=0)
@@ -163,6 +172,8 @@ class AudioSequencer(Gtk.Window):
         self.instru_vcontainer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.instru_vcontainer.pack_start(
                 self.instru_hcontainer, expand=True, fill=True, padding=0)
+        self.instru_vcontainer.pack_end(
+                self.audio_block_edit_box, expand=False, fill=False, padding=0)
         self.instru_vcontainer.pack_end(
                 self.timed_group_editor_hscrollbar, expand=False, fill=False, padding=0)
 
@@ -181,6 +192,7 @@ class AudioSequencer(Gtk.Window):
         self.build_timed_group_list_view()
         self.show_all()
         self.pause_button.hide()
+        self.audio_block_edit_box.hide()
 
     def add_file_instru_button_clicked(self, widget):
         filename = gui_utils.FileOp.choose_file(self, "open", "audio")
@@ -271,6 +283,21 @@ class AudioSequencer(Gtk.Window):
             self.block_box = None
         self.redraw_timed_group_editor()
 
+    def show_audio_block_info(self):
+        if self.selected_block_box:
+            self.audio_block_note_list.set_value(self.selected_block_box.audio_block.music_note)
+            self.audio_block_edit_box.show()
+        else:
+            self.audio_block_edit_box.hide()
+
+    def audio_block_note_list_changed(self, widget):
+        if self.selected_block_box:
+            note_name = self.audio_block_note_list.get_value()
+            if note_name:
+                self.selected_block_box.audio_block.set_note(note_name)
+                self.block_box.update_size()
+                self.timed_group_editor.queue_draw()
+
     def redraw_timed_group_editor(self):
         self.timed_group_editor.queue_draw()
 
@@ -291,7 +318,6 @@ class AudioSequencer(Gtk.Window):
         self.tge_rect = Rect(0, 0, tge.get_allocated_width(), tge.get_allocated_height())
         if self.block_box:
             self.block_box.set_size(self.tge_rect.width, None)
-
     def on_timed_group_editor_mouse_press(self, widget, event):
         self.mouse_init_point.x = self.mouse_point.x
         self.mouse_init_point.y = self.mouse_point.y
@@ -306,6 +332,12 @@ class AudioSequencer(Gtk.Window):
             else:
                 if self.block_box:
                     self.selected_box = self.block_box.find_box_at(self.mouse_point)
+            if event.type == Gdk.EventType._2BUTTON_PRESS:#double button click
+                if isinstance(self.selected_box, AudioBlockBox):
+                    self.selected_block_box = self.selected_box
+                else:
+                    self.selected_block_box = None
+                self.show_audio_block_info()
         elif event.button == 3:#Left mouse
             self.selected_box = self.block_box
 
