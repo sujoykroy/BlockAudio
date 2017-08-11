@@ -12,11 +12,11 @@ class AudioFileInstru(AudioSamplesInstru):
                     None)
         self.set_name(os.path.basename(filename))
 
-    def create_note_block(self, note="C5"):
+    def get_samples_for(self, note):
         if self.samples is None:
             self.base_block = AudioFileBlock(self.filename, self.sample_count)
             self.samples = self.base_block.get_full_samples()
-        return super(AudioFileInstru, self).create_note_block(note)
+        return super(AudioFileInstru, self).get_samples_for(note)
 
     @classmethod
     def load(cls, filepath, prefix='', recursive=True, test=False):
@@ -45,6 +45,6 @@ class AudioFileInstru(AudioSamplesInstru):
         if not test or (clip and clip.duration>0):
             del clip
             instru = AudioFileInstru(filepath)
-            instru.set_name(prefix + os.path.basename(filepath))
+            instru.set_name(prefix + os.path.splitext(os.path.basename(filepath))[0])
             return [instru]
         return None

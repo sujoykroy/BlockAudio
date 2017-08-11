@@ -284,7 +284,7 @@ class AudioSequencer(Gtk.Window):
 
         self.block_box.show_beat_marks(ctx, self.beat)
         self.block_box.show_current_position(ctx)
-        self.block_box.show_border_line(ctx)
+        self.block_box.show_outer_border_line(ctx)
 
     def on_timed_group_editor_configure_event(self, widget, event):
         tge = self.timed_group_editor

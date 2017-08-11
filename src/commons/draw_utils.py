@@ -38,6 +38,17 @@ def draw_fill(ctx, color=Color(1, 1, 1,1)):
     ctx.fill()
     ctx.restore()
 
+def draw_fill_rect_gradient(ctx, wh, color_fracs):
+    ctx.save()
+    ctx.scale(*wh)
+    pattern = cairo.LinearGradient(0., 0., 0., 1.)
+    for frac, color in color_fracs:
+       pattern.add_color_stop_rgba (
+            frac, color.values[0], color.values[1], color.values[2], color.values[3])
+    ctx.set_source(pattern)
+    ctx.fill()
+    ctx.restore()
+
 def draw_text(ctx, text,
               x, y, width=None, corner=5, align=None, fit_width=False, height=None, fit_height=False,
               text_color=None, back_color=None, border_color=None, border_width=1,

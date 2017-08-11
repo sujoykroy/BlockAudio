@@ -57,13 +57,13 @@ class AudioTimedGroupBox(AudioBlockBox):
             box.draw(ctx)
 
     def find_box_at(self, point):
-        point = self.transform_point(point)
+        rel_point = self.transform_point(point)
         for block_box_id in reversed(self.block_zs):
             block_box = self.block_boxes.get(block_box_id)
-            if block_box.is_within(point):
-                expander = block_box.get_expander(at=point)
-                if expander:
-                    return expander
+            if block_box.is_within(rel_point):
+                tail_box = block_box.get_tail_box(abs_at=point)
+                if tail_box:
+                    return tail_box
                 return block_box
         return None
 
@@ -72,7 +72,6 @@ class AudioTimedGroupBox(AudioBlockBox):
         end_point = self.transform_point(end_point)
         xdiff = end_point.x - start_point.x
         ydiff = end_point.y - start_point.y
-
         if isinstance(box, AudioBlockBox):
             xpos = init_position.x+xdiff
             if beat:
@@ -84,7 +83,8 @@ class AudioTimedGroupBox(AudioBlockBox):
 
             self.audio_block.set_block_at(box.audio_block, int(sample_pos))
             self.update_box_position(box, init_position.y+ydiff)
-        elif isinstance(box, ExpanderBox):
+
+        elif box.parent_box and box.parent_box.tail_box and box == box.parent_box.tail_box :
             xpos = end_point.x
             if beat:
                 sample_pos = beat.pixel2sample(xpos)

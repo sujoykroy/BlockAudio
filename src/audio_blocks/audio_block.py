@@ -43,12 +43,13 @@ class AudioBlock(object):
     def set_midi_channel(self, channel):
         self.midi_channel = channel
 
-
     def set_instru(self, instru):
         self.instru = instru
 
     def set_note(self, note):
         self.music_note = note
+        if self.instru:
+            self.instru.refill_block(self)
 
     def new_midi_note_on_message(self, delay):
         return MidiMessage.note_on(
