@@ -5,6 +5,7 @@ from ..formulators import *
 from ..commons import Point, Beat, KeyboardState, Rect
 from ..commons import MusicNote
 from .. import gui_utils
+from timed_group_page import TimedGroupPage
 
 from gi.repository import GObject
 GObject.threads_init()
@@ -15,6 +16,11 @@ class AudioSequencer(Gtk.Window):
         Gtk.Window.__init__(self, title="Sequencer", resizable=True)
         self.set_size_request(width, height)
 
+        self.opened_audio_blocks = dict()
+        self.beat = Beat(bpm=120/8,
+                         sample_rate=AudioBlock.SampleRate,
+                         pixel_per_sample=AudioBlockBox.PIXEL_PER_SAMPLE)
+        self.tge_rect = Rect(0, 0, 1, 1)
         self.keyboard_state = KeyboardState()
 
         self.connect("delete-event", self.quit)
@@ -63,6 +69,8 @@ class AudioSequencer(Gtk.Window):
         self.timed_group_list_view.append_column(
             Gtk.TreeViewColumn("Name", Gtk.CellRendererText(), text=0))
         self.timed_group_list_view.set_headers_visible(False)
+        self.timed_group_list_view.connect(
+            "row-activated", self.timed_group_list_view_row_activated)
 
         self.add_block_group_button = Gtk.Button("Add Block Group")
         self.add_block_group_button.connect("clicked", self.add_block_group_button_clicked)
@@ -78,66 +86,6 @@ class AudioSequencer(Gtk.Window):
 
         self.add_file_block_button = Gtk.Button("Add File Block")
         self.add_file_block_button.connect("clicked", self.add_file_block_button_clicked)
-
-        #play/pause
-        self.play_button = Gtk.Button("Play")
-        self.play_button.connect("clicked", self.play_button_clicked)
-        self.pause_button = Gtk.Button("Pause")
-        self.pause_button.connect("clicked", self.pause_button_clicked)
-
-
-        #timed group editor
-        self.timed_group_editor = Gtk.DrawingArea()
-        self.timed_group_editor.set_events(
-            Gdk.EventMask.POINTER_MOTION_MASK|Gdk.EventMask.BUTTON_PRESS_MASK|\
-            Gdk.EventMask.BUTTON_RELEASE_MASK|Gdk.EventMask.SCROLL_MASK)
-
-        self.timed_group_editor.connect(
-                "draw", self.on_timed_group_editor_draw)
-        self.timed_group_editor.connect(
-                "configure-event", self.on_timed_group_editor_configure_event)
-        self.timed_group_editor.connect(
-                "button-press-event", self.on_timed_group_editor_mouse_press)
-        self.timed_group_editor.connect(
-                "button-release-event", self.on_timed_group_editor_mouse_release)
-        self.timed_group_editor.connect(
-                "motion-notify-event", self.on_timed_group_editor_mouse_move)
-        self.timed_group_editor.connect(
-                "scroll-event", self.on_timed_group_editor_mouse_scroll)
-
-        #timed group editor vertical scroller
-        self.timed_group_editor_vadjust = Gtk.Adjustment(0, 0, 1., .01, 0, 0)
-        self.timed_group_editor_vscrollbar = Gtk.VScrollbar(self.timed_group_editor_vadjust)
-        self.timed_group_editor_vscrollbar.connect(
-            "value-changed", self.on_timed_group_editor_scrollbar_value_changed, "vert")
-
-        #timed group editor horizontal scroller
-        self.timed_group_editor_hadjust = Gtk.Adjustment(0, 0, 1., .01, 0, 0)
-        self.timed_group_editor_hscrollbar = Gtk.HScrollbar(self.timed_group_editor_hadjust)
-        self.timed_group_editor_hscrollbar.connect(
-            "value-changed", self.on_timed_group_editor_scrollbar_value_changed, "horiz")
-
-        self.audio_block_edit_box = Gtk.Grid()
-        self.audio_block_note_list = gui_utils.NameValueComboBox()
-        self.audio_block_note_list.build_and_set_model(MusicNote.get_names())
-        self.audio_block_note_list.connect("changed", self.audio_block_note_list_changed)
-
-        self.audio_block_edit_box.attach(
-                Gtk.Label("Note"), left=1, top=1, width=1, height=1)
-        self.audio_block_edit_box.attach(
-                self.audio_block_note_list, left=2, top=1, width=1, height=1)
-
-        self.audio_block = None
-        self.block_box = None
-        self.audio_server = None
-
-        self.mouse_point = Point(0., 0.)
-        self.mouse_init_point = Point(0., 0.)
-        self.selected_box = None
-        self.beat = Beat(bpm=120/8,
-                         sample_rate=AudioBlock.SampleRate,
-                         pixel_per_sample=AudioBlockBox.PIXEL_PER_SAMPLE)
-        self.tge_rect = Rect(0, 0, 1, 1)
 
         self.root_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.add(self.root_box)
@@ -183,69 +131,55 @@ class AudioSequencer(Gtk.Window):
         self.blockinstru_box.pack_end(
                 self.add_file_block_button, expand=False, fill=False, padding=0)
 
-        self.control_box = Gtk.HBox()
-        self.control_box.pack_end(self.play_button, expand=False, fill=False, padding=0)
-        self.control_box.pack_end(self.pause_button, expand=False, fill=False, padding=0)
-
-        self.instru_hcontainer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.instru_hcontainer.pack_start(
-                self.timed_group_editor, expand=True, fill=True, padding=0)
-        self.instru_hcontainer.pack_end(
-                self.timed_group_editor_vscrollbar, expand=False, fill=False, padding=0)
-
-        self.instru_vcontainer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.instru_vcontainer.pack_start(
-                self.control_box, expand=False, fill=False, padding=0)
-        self.instru_vcontainer.pack_start(
-                self.instru_hcontainer, expand=True, fill=True, padding=5)
-        self.instru_vcontainer.pack_end(
-                self.audio_block_edit_box, expand=False, fill=False, padding=0)
-        self.instru_vcontainer.pack_end(
-                self.timed_group_editor_hscrollbar, expand=False, fill=False, padding=0)
-
         self.block_instru_notebook = Gtk.Notebook()
-        self.block_instru_notebook.append_page(self.instru_vcontainer, Gtk.Label("Block Group"))
+        self.block_instru_notebook.set_scrollable(True)
 
         self.root_paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
         self.root_paned.add1(self.blockinstru_box)
         self.root_paned.add2(self.block_instru_notebook)
 
         self.root_box.pack_start(self.root_paned, expand=True, fill=True, padding=5)
-        #self.root_box.pack_start(self.blockinstru_box, expand=False, fill=False, padding=5)
-        #self.root_box.pack_start(self.block_instru_notebook, expand=True, fill=True, padding=2)
 
         self.build_instru_list_view()
         self.build_timed_group_list_view()
         self.build_file_block_list_view()
 
         self.show_all()
-        self.pause_button.hide()
-        self.audio_block_edit_box.hide()
         self.load_block(self.timed_group_list[0])
 
+    def add_page(self, page, name):
+        if isinstance(page, TimedGroupPage):
+            if page.audio_block.get_id() in self.opened_audio_blocks:
+                return
+            self.opened_audio_blocks[page.audio_block.get_id()] = page
+
+        page.init_show()
+        widget = page.get_widget()
+
+        close_button = Gtk.Button()
+        close_button.set_image(Gtk.Image.new_from_icon_name("edit_-delete", Gtk.IconSize.BUTTON))
+        close_button.connect("clicked", self.notebook_tab_close_button_clicked, page)
+
+        tab_label = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        tab_label.pack_start(Gtk.Label(name), expand=True, fill=True, padding=0)
+        tab_label.pack_start(close_button, expand=False, fill=False, padding=0)
+        tab_label.show_all()
+
+        self.block_instru_notebook.append_page(widget, tab_label)
+        self.block_instru_notebook.show()
+
+    def notebook_tab_close_button_clicked(self, widget, page):
+        self.block_instru_notebook.remove(page.get_widget())
+
+        if isinstance(page, TimedGroupPage):
+            if page.audio_block.get_id() in self.opened_audio_blocks:
+                del self.opened_audio_blocks[page.audio_block.get_id()]
+
     def load_block(self, audio_block):
-        if self.audio_server and self.audio_block:
-            self.audio_server.remove_block(self.audio_block)
-
-        self.audio_block = audio_block
-        if self.audio_block:
-            if isinstance(self.audio_block, AudioTimedGroup):
-                block_box = AudioTimedGroupBox(self.audio_block)
-            else:
-                block_box = AudioBlockBox(self.audio_block)
-            self.block_box = block_box
-            self.block_box.set_size(
-                self.timed_group_editor.get_allocated_width(),
-                self.timed_group_editor.get_allocated_height())
-            if self.audio_server:
-                self.audio_server.add_block(self.audio_block)
-        else:
-            self.block_box = None
-
-        if self.tge_rect and self.block_box:
-            self.block_box.set_size(self.tge_rect.width, None)
-
-        self.redraw_timed_group_editor()
+        self.add_page(
+            TimedGroupPage(self, audio_block),
+            audio_block.get_name()
+        )
 
     def add_file_instru_button_clicked(self, widget):
         filename = gui_utils.FileOp.choose_file(self, "open", "audio")
@@ -272,6 +206,13 @@ class AudioSequencer(Gtk.Window):
             block = AudioFileBlock(filename)
             self.file_block_list.append(block)
             self.build_file_block_list_view()
+
+    def timed_group_list_view_row_activated(self, tree_view, path, column):
+        treeiter = tree_view.get_model().get_iter(path)
+        if not treeiter:
+            return
+        block = tree_view.get_model().get_value(treeiter, 1)
+        self.load_block(block)
 
     def build_instru_list_view(self):
         instru_store = Gtk.TreeStore(str, object)
@@ -309,148 +250,6 @@ class AudioSequencer(Gtk.Window):
             return model.get_value(tree_iter, 1)
         return None
 
-    def play_button_clicked(self, wiget):
-        if not self.audio_block:
-            return
-        if not self.audio_server:
-            self.audio_server = AudioServer()
-            self.audio_server.add_block(self.audio_block)
-        self.audio_server.play()
-        self.play_button.hide()
-        self.pause_button.show()
-        self.timer_id = GObject.timeout_add(100, self.on_playahead_movement)
-
-    def pause_button_clicked(self, wiget):
-        if not self.audio_block:
-            return
-        if not self.audio_server:
-            return
-        self.audio_server.pause()
-        self.play_button.show()
-        self.pause_button.hide()
-
-    def on_playahead_movement(self):
-        self.redraw_timed_group_editor()
-        return self.audio_server and not self.audio_server.paused
-
-
-    def show_audio_block_info(self):
-        if self.selected_block_box:
-            self.audio_block_note_list.set_value(self.selected_block_box.audio_block.music_note)
-            self.audio_block_edit_box.show()
-        else:
-            self.audio_block_edit_box.hide()
-
-    def audio_block_note_list_changed(self, widget):
-        if self.selected_block_box:
-            note_name = self.audio_block_note_list.get_value()
-            if note_name:
-                self.selected_block_box.audio_block.set_note(note_name)
-                self.block_box.update_size()
-                self.timed_group_editor.queue_draw()
-
-    def redraw_timed_group_editor(self):
-        self.timed_group_editor.queue_draw()
-
-    def on_timed_group_editor_draw(self, widget, ctx):
-        if not self.block_box:
-            return
-        self.block_box.show_div_marks(ctx, self.beat)
-
-        rect = self.block_box.get_rect(Point(0,0), Point(self.tge_rect.width, self.tge_rect.height))
-        self.block_box.draw(ctx, rect)
-
-        self.block_box.show_beat_marks(ctx, self.beat)
-        self.block_box.show_current_position(ctx)
-        self.block_box.show_outer_border_line(ctx)
-        ctx.rectangle(0, 0, widget.get_allocated_width(), widget.get_allocated_height())
-        ctx.set_source_rgba(0, 0, 0, 1)
-        ctx.stroke()
-
-    def on_timed_group_editor_configure_event(self, widget, event):
-        tge = self.timed_group_editor
-        self.tge_rect = Rect(0, 0, tge.get_allocated_width(), tge.get_allocated_height())
-        if self.block_box:
-            self.block_box.set_size(self.tge_rect.width, None)
-
-    def on_timed_group_editor_mouse_press(self, widget, event):
-        self.mouse_init_point.x = self.mouse_point.x
-        self.mouse_init_point.y = self.mouse_point.y
-        if event.button == 1:#Left mouse
-            if self.keyboard_state.control_key_pressed:
-                instru = self.get_selected_instru()
-                if instru:
-                    pos = self.block_box.transform_point(self.mouse_point)
-                    self.block_box.add_block(
-                        instru.create_note_block(), at=pos.x, y=pos.y, sample_unit=False)
-                    if len(self.audio_block.blocks) == 1:
-                        self.block_box.set_size(self.tge_rect.width, None)
-                    self.redraw_timed_group_editor()
-            else:
-                if self.block_box:
-                    self.selected_box = self.block_box.find_box_at(self.mouse_point)
-            if event.type == Gdk.EventType._2BUTTON_PRESS:#double button click
-                if isinstance(self.selected_box, AudioBlockBox):
-                    self.selected_block_box = self.selected_box
-                else:
-                    self.selected_block_box = None
-                self.show_audio_block_info()
-        elif event.button == 3:#Left mouse
-            self.selected_box = self.block_box
-
-        if self.selected_box:
-            self.selected_box_init_position = self.selected_box.get_position()
-
-    def on_timed_group_editor_mouse_release(self,widget, event):
-        self.selected_box = None
-
-    def on_timed_group_editor_mouse_move(self, widget, event):
-        self.mouse_point.x = event.x
-        self.mouse_point.y = event.y
-        if self.selected_box:
-            if self.selected_box == self.block_box:
-                diff = self.mouse_point.diff(self.mouse_init_point)
-                new_pos = self.selected_box_init_position.copy()
-                new_pos.translate(diff.x, diff.y)
-                self.selected_box.set_position(new_pos, rect=self.tge_rect)
-                self.update_scrollbars()
-            else:
-                self.block_box.move_box(
-                    self.selected_box, self.selected_box_init_position,
-                    self.mouse_init_point, self.mouse_point,
-                    beat=self.beat)
-            self.redraw_timed_group_editor()
-
-    def update_scrollbars(self):
-        rect = Rect(0,0, self.tge_rect.width, self.tge_rect.height)
-
-        scroll_x = self.block_box.get_scroll_x(rect)
-        self.timed_group_editor_hscrollbar.set_value(scroll_x)
-
-        scroll_y = self.block_box.get_scroll_y(rect)
-        self.timed_group_editor_vscrollbar.set_value(scroll_y)
-
-    def on_timed_group_editor_mouse_scroll(self, widget, event):
-        if event.direction == Gdk.ScrollDirection.UP:
-            mult = 1.
-        elif event.direction == Gdk.ScrollDirection.DOWN:
-            mult = -1.
-        if self.keyboard_state.control_key_pressed:
-            self.block_box.zoom_x(1+.1*mult, self.mouse_point)
-            self.redraw_timed_group_editor()
-            self.update_scrollbars()
-
-    def on_timed_group_editor_scrollbar_value_changed(self, scrollbar, scroll_dir):
-        if not self.block_box:
-            return
-        value = scrollbar.get_value()
-        rect = Rect(0,0, self.tge_rect.width, self.tge_rect.height)
-        if scroll_dir == "horiz":
-            self.block_box.set_scroll_x(value, rect)
-        elif scroll_dir == "vert":
-            self.block_box.set_scroll_y(value, rect)
-        self.redraw_timed_group_editor()
-
     def on_key_press(self, widget, event):
         self.keyboard_state.set_keypress(event.keyval, pressed=True)
 
@@ -458,8 +257,6 @@ class AudioSequencer(Gtk.Window):
         self.keyboard_state.set_keypress(event.keyval, pressed=False)
 
     def quit(self, wiget, event):
-        if self.audio_server:
-            self.audio_server.close()
         AudioServer.close_all()
         Gtk.main_quit()
 

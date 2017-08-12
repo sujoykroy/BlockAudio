@@ -44,7 +44,9 @@ class AudioServer(threading.Thread):
     def get_default():
         if AudioServer.Servers:
             return AudioServer.Servers[0]
-        return AudioServer()
+        server = AudioServer()
+        server.play()
+        return server
 
     @staticmethod
     def close_all():
