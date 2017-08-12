@@ -14,13 +14,13 @@ class MidiMessage(object):
 
     @classmethod
     def note_on(cls, delay, note, channel, velocity=64):
-        note = MusicNote.Notes[note]
+        note = MusicNote.get_note(note)
         return cls(delay, mido.Message(
             'note_on', note=note.midi_value, channel=channel, velocity=velocity))
 
     @classmethod
     def note_off(cls, delay, note, channel):
-        note = MusicNote.Notes[note]
+        note = MusicNote.get_note(note)
         return cls(delay, mido.Message(
             'note_off', note=note.midi_value, channel=channel, velocity=0))
 

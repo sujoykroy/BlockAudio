@@ -25,12 +25,17 @@ class AudioFileClipSamples(object):
                     start_at = start_key.start*1./AudioBlock.SampleRate
                 else:
                     start_at = 0
+
+                if start_at>=self.audioclip.duration:
+                    return numpy.zeros((0, self.audioclip.nchannels), dtype=numpy.float32)
+
                 if start_key.stop:
                     end_at = start_key.stop*1./AudioBlock.SampleRate
                     if end_at>self.audioclip.duration:
                         end_at = self.audioclip.duration
                 else:
                     end_at = None
+
                 start_key = slice(None, None, start_key.step)
                 audioclip = self.audioclip.subclip(start_at, end_at)
                 samples = audioclip.to_soundarray(buffersize=1000).astype(numpy.float32)
@@ -44,7 +49,7 @@ class AudioFileClipSamples(object):
 class AudioFileBlock(AudioSamplesBlock):
     MAX_DURATION_SECONDS = 10*60
 
-    def __init__(self, filename, sample_count=None, preload=False):
+    def __init__(self, filename, sample_count=None, preload=True):
         AudioSamplesBlock.__init__(self, samples=AudioBlock.get_blank_data(1))
         self.sample_count = sample_count
         self.filename = filename

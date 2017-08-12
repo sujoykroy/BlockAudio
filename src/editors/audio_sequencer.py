@@ -10,7 +10,8 @@ from gi.repository import GObject
 GObject.threads_init()
 
 class AudioSequencer(Gtk.Window):
-    def __init__(self, width=800, height=600, instru_list=None, timed_group_list=None):
+    def __init__(self, width=800, height=600,
+                instru_list=None, timed_group_list=None, file_block_list=None):
         Gtk.Window.__init__(self, title="Sequencer", resizable=True)
         self.set_size_request(width, height)
 
@@ -22,12 +23,16 @@ class AudioSequencer(Gtk.Window):
 
         if not instru_list:
             instru_list = []
+        if not file_block_list:
+            file_block_list = []
         if not timed_group_list:
             timed_group = AudioTimedGroup()
             timed_group.set_name("Main")
             timed_group_list = [timed_group]
+
         self.instru_list = instru_list
         self.timed_group_list = timed_group_list
+        self.file_block_list = file_block_list
 
         self.instru_list_label = Gtk.Label("Instruments")
         self.instru_list_label.set_pattern("___________")
@@ -62,7 +67,17 @@ class AudioSequencer(Gtk.Window):
         self.add_block_group_button = Gtk.Button("Add Block Group")
         self.add_block_group_button.connect("clicked", self.add_block_group_button_clicked)
 
-        self.play_control_box = Gtk.HBox()
+        self.file_block_list_label = Gtk.Label("File Blocks")
+        self.file_block_list_label.set_pattern("____________")
+        self.file_block_list_label.set_justify(Gtk.Justification.CENTER)
+
+        self.file_block_list_view = Gtk.TreeView()
+        self.file_block_list_view.append_column(
+            Gtk.TreeViewColumn("Name", Gtk.CellRendererText(), text=0))
+        self.file_block_list_view.set_headers_visible(False)
+
+        self.add_file_block_button = Gtk.Button("Add File Block")
+        self.add_file_block_button.connect("clicked", self.add_file_block_button_clicked)
 
         #play/pause
         self.play_button = Gtk.Button("Play")
@@ -70,8 +85,6 @@ class AudioSequencer(Gtk.Window):
         self.pause_button = Gtk.Button("Pause")
         self.pause_button.connect("clicked", self.pause_button_clicked)
 
-        self.play_control_box.pack_start(self.play_button, expand=False, fill=False, padding=5)
-        self.play_control_box.pack_start(self.pause_button, expand=False, fill=False, padding=5)
 
         #timed group editor
         self.timed_group_editor = Gtk.DrawingArea()
@@ -132,36 +145,47 @@ class AudioSequencer(Gtk.Window):
         self.blockinstru_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.blockinstru_box.set_size_request(100, -1)
 
+        #instru list display
         self.blockinstru_box.pack_start(
                 self.instru_list_label, expand=False, fill=False, padding=5)
-
         self.instru_list_view_container = Gtk.ScrolledWindow()
         self.instru_list_view_container.add_with_viewport(self.instru_list_view)
-
-
         self.blockinstru_box.pack_start(
                 self.instru_list_view_container, expand=True, fill=True, padding=0)
+
         self.blockinstru_box.pack_start(
                 self.add_file_instru_button, expand=False, fill=False, padding=5)
 
         self.blockinstru_box.pack_start(
                 self.formula_list_label, expand=False, fill=False, padding=5)
-
         self.blockinstru_box.pack_start(
                 self.formula_combo_box, expand=False, fill=False, padding=0)
         self.blockinstru_box.pack_start(
                 self.add_formula_instru_button, expand=False, fill=False, padding=5)
 
+        #block group list display
         self.blockinstru_box.pack_start(
                 self.timed_group_list_label, expand=False, fill=False, padding=5)
-
         self.timed_group_list_view_container = Gtk.ScrolledWindow()
         self.timed_group_list_view_container.add_with_viewport(self.timed_group_list_view)
-
         self.blockinstru_box.pack_start(
                 self.timed_group_list_view_container, expand=True, fill=True, padding=5)
-        self.blockinstru_box.pack_end(
+        self.blockinstru_box.pack_start(
                 self.add_block_group_button, expand=False, fill=False, padding=0)
+
+        #file block list display
+        self.blockinstru_box.pack_start(
+                self.file_block_list_label, expand=False, fill=False, padding=5)
+        self.file_block_list_view_container = Gtk.ScrolledWindow()
+        self.file_block_list_view_container.add_with_viewport(self.file_block_list_view)
+        self.blockinstru_box.pack_start(
+                self.file_block_list_view_container, expand=True, fill=True, padding=5)
+        self.blockinstru_box.pack_end(
+                self.add_file_block_button, expand=False, fill=False, padding=0)
+
+        self.control_box = Gtk.HBox()
+        self.control_box.pack_end(self.play_button, expand=False, fill=False, padding=0)
+        self.control_box.pack_end(self.pause_button, expand=False, fill=False, padding=0)
 
         self.instru_hcontainer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.instru_hcontainer.pack_start(
@@ -171,7 +195,9 @@ class AudioSequencer(Gtk.Window):
 
         self.instru_vcontainer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.instru_vcontainer.pack_start(
-                self.instru_hcontainer, expand=True, fill=True, padding=0)
+                self.control_box, expand=False, fill=False, padding=0)
+        self.instru_vcontainer.pack_start(
+                self.instru_hcontainer, expand=True, fill=True, padding=5)
         self.instru_vcontainer.pack_end(
                 self.audio_block_edit_box, expand=False, fill=False, padding=0)
         self.instru_vcontainer.pack_end(
@@ -190,9 +216,36 @@ class AudioSequencer(Gtk.Window):
 
         self.build_instru_list_view()
         self.build_timed_group_list_view()
+        self.build_file_block_list_view()
+
         self.show_all()
         self.pause_button.hide()
         self.audio_block_edit_box.hide()
+        self.load_block(self.timed_group_list[0])
+
+    def load_block(self, audio_block):
+        if self.audio_server and self.audio_block:
+            self.audio_server.remove_block(self.audio_block)
+
+        self.audio_block = audio_block
+        if self.audio_block:
+            if isinstance(self.audio_block, AudioTimedGroup):
+                block_box = AudioTimedGroupBox(self.audio_block)
+            else:
+                block_box = AudioBlockBox(self.audio_block)
+            self.block_box = block_box
+            self.block_box.set_size(
+                self.timed_group_editor.get_allocated_width(),
+                self.timed_group_editor.get_allocated_height())
+            if self.audio_server:
+                self.audio_server.add_block(self.audio_block)
+        else:
+            self.block_box = None
+
+        if self.tge_rect and self.block_box:
+            self.block_box.set_size(self.tge_rect.width, None)
+
+        self.redraw_timed_group_editor()
 
     def add_file_instru_button_clicked(self, widget):
         filename = gui_utils.FileOp.choose_file(self, "open", "audio")
@@ -213,6 +266,13 @@ class AudioSequencer(Gtk.Window):
         self.timed_group_list.append(timed_group)
         self.build_timed_group_list_view()
 
+    def add_file_block_button_clicked(self, widget):
+        filename = gui_utils.FileOp.choose_file(self, "open", "audio")
+        if filename:
+            block = AudioFileBlock(filename)
+            self.file_block_list.append(block)
+            self.build_file_block_list_view()
+
     def build_instru_list_view(self):
         instru_store = Gtk.TreeStore(str, object)
 
@@ -223,12 +283,6 @@ class AudioSequencer(Gtk.Window):
             instru_store.append(None, [name, instru_dict[name]])
         self.instru_list_view.set_model(instru_store)
 
-    def get_selected_instru(self):
-        model, tree_iter = self.instru_list_view.get_selection().get_selected()
-        if tree_iter:
-            return model.get_value(tree_iter, 1)
-        return None
-
     def build_timed_group_list_view(self):
         group_store = Gtk.TreeStore(str, object)
 
@@ -238,6 +292,22 @@ class AudioSequencer(Gtk.Window):
         for name in sorted(group_dict.keys()):
             group_store.append(None, [name, group_dict[name]])
         self.timed_group_list_view.set_model(group_store)
+
+    def build_file_block_list_view(self):
+        file_block_store = Gtk.TreeStore(str, object)
+
+        file_block_dict = dict()
+        for file_block in self.file_block_list:
+            file_block_dict[file_block.get_name()] = file_block
+        for name in sorted(file_block_dict.keys()):
+            file_block_store.append(None, [name, file_block_dict[name]])
+        self.file_block_list_view.set_model(file_block_store)
+
+    def get_selected_instru(self):
+        model, tree_iter = self.instru_list_view.get_selection().get_selected()
+        if tree_iter:
+            return model.get_value(tree_iter, 1)
+        return None
 
     def play_button_clicked(self, wiget):
         if not self.audio_block:
@@ -263,25 +333,6 @@ class AudioSequencer(Gtk.Window):
         self.redraw_timed_group_editor()
         return self.audio_server and not self.audio_server.paused
 
-    def load_block(self, audio_block):
-        if self.audio_server and self.audio_block:
-            self.audio_server.remove_block(self.audio_block)
-
-        self.audio_block = audio_block
-        if self.audio_block:
-            if isinstance(self.audio_block, AudioTimedGroup):
-                block_box = AudioTimedGroupBox(self.audio_block)
-            else:
-                block_box = AudioBlockBox(self.audio_block)
-            self.block_box = block_box
-            self.block_box.set_size(
-                self.timed_group_editor.get_allocated_width(),
-                self.timed_group_editor.get_allocated_height())
-            if self.audio_server:
-                self.audio_server.add_block(self.audio_block)
-        else:
-            self.block_box = None
-        self.redraw_timed_group_editor()
 
     def show_audio_block_info(self):
         if self.selected_block_box:
@@ -312,12 +363,16 @@ class AudioSequencer(Gtk.Window):
         self.block_box.show_beat_marks(ctx, self.beat)
         self.block_box.show_current_position(ctx)
         self.block_box.show_outer_border_line(ctx)
+        ctx.rectangle(0, 0, widget.get_allocated_width(), widget.get_allocated_height())
+        ctx.set_source_rgba(0, 0, 0, 1)
+        ctx.stroke()
 
     def on_timed_group_editor_configure_event(self, widget, event):
         tge = self.timed_group_editor
         self.tge_rect = Rect(0, 0, tge.get_allocated_width(), tge.get_allocated_height())
         if self.block_box:
             self.block_box.set_size(self.tge_rect.width, None)
+
     def on_timed_group_editor_mouse_press(self, widget, event):
         self.mouse_init_point.x = self.mouse_point.x
         self.mouse_init_point.y = self.mouse_point.y
@@ -328,6 +383,8 @@ class AudioSequencer(Gtk.Window):
                     pos = self.block_box.transform_point(self.mouse_point)
                     self.block_box.add_block(
                         instru.create_note_block(), at=pos.x, y=pos.y, sample_unit=False)
+                    if len(self.audio_block.blocks) == 1:
+                        self.block_box.set_size(self.tge_rect.width, None)
                     self.redraw_timed_group_editor()
             else:
                 if self.block_box:
