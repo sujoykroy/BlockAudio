@@ -15,6 +15,7 @@ class AudioSequencer(Gtk.Window):
                 instru_list=None, timed_group_list=None, file_block_list=None):
         Gtk.Window.__init__(self, title="Sequencer", resizable=True)
         self.set_size_request(width, height)
+        self.set_events(Gdk.EventMask.POINTER_MOTION_MASK)
 
         self.opened_audio_blocks = dict()
         self.beat = Beat(bpm=120/8,
@@ -156,13 +157,11 @@ class AudioSequencer(Gtk.Window):
         page.init_show()
         widget = page.get_widget()
 
-        close_button = Gtk.Button()
-        close_button.set_image(Gtk.Image.new_from_icon_name("edit_-delete", Gtk.IconSize.BUTTON))
-        close_button.connect("clicked", self.notebook_tab_close_button_clicked, page)
+        close_button = gui_utils.CloseTabButton(self.notebook_tab_close_button_clicked, page)
 
         tab_label = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         tab_label.pack_start(Gtk.Label(name), expand=True, fill=True, padding=0)
-        tab_label.pack_start(close_button, expand=False, fill=False, padding=0)
+        tab_label.pack_start(close_button, expand=False, fill=False, padding=5)
         tab_label.show_all()
 
         self.block_instru_notebook.append_page(widget, tab_label)
