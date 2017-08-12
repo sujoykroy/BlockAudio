@@ -12,6 +12,7 @@ class TimedGroupPage(object):
         self.mouse_point = Point(0., 0.)
         self.mouse_init_point = Point(0., 0.)
         self.audio_server = None
+        self.current_pos_selected = False
 
         self.selected_block_box = None
         self.selected_box = None
@@ -162,7 +163,7 @@ class TimedGroupPage(object):
         self.block_box.draw(ctx, rect)
 
         self.block_box.show_beat_marks(ctx, self.owner.beat)
-        self.block_box.show_current_position(ctx)
+        self.block_box.show_current_position(ctx, rect)
         self.block_box.show_outer_border_line(ctx)
         ctx.rectangle(0, 0, widget.get_allocated_width(), widget.get_allocated_height())
         ctx.set_source_rgba(0, 0, 0, 1)
@@ -190,6 +191,10 @@ class TimedGroupPage(object):
             else:
                 if self.block_box:
                     self.selected_box = self.block_box.find_box_at(self.mouse_point)
+                if not self.selected_box:
+                    self.current_pos_selected=self.block_box.is_abs_within_current_pos(self.mouse_point)
+                else:
+                    self.current_pos_selected = False
             if event.type == Gdk.EventType._2BUTTON_PRESS:#double button click
                 if isinstance(self.selected_box, AudioBlockBox):
                     self.selected_block_box = self.selected_box
@@ -204,6 +209,7 @@ class TimedGroupPage(object):
 
     def on_timed_group_editor_mouse_release(self,widget, event):
         self.selected_box = None
+        self.current_pos_selected = None
 
     def on_timed_group_editor_mouse_move(self, widget, event):
         self.mouse_point.x = event.x
@@ -220,6 +226,9 @@ class TimedGroupPage(object):
                     self.selected_box, self.selected_box_init_position,
                     self.mouse_init_point, self.mouse_point,
                     beat=self.owner.beat)
+            self.redraw_timed_group_editor()
+        elif self.current_pos_selected:
+            self.block_box.set_current_position(self.mouse_point)
             self.redraw_timed_group_editor()
 
     def on_timed_group_editor_mouse_scroll(self, widget, event):

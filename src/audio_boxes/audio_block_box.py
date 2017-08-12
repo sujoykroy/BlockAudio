@@ -225,14 +225,24 @@ class AudioBlockBox(object):
 
         self.tail_box.draw(ctx)
 
-    def show_current_position(self, ctx):
-        x = self.audio_block.play_pos*AudioBlockBox.PIXEL_PER_SAMPLE
-        ctx.save()
-        self.pre_draw(ctx)
-        ctx.move_to(x, 0)
-        ctx.line_to(x, self.height)
-        ctx.restore()
+    def show_current_position(self, ctx, rect):
+        x = self.audio_block.current_pos*AudioBlockBox.PIXEL_PER_SAMPLE
+        point = self.abs_reverse_transform_point(Point(x, 0))
+        ctx.move_to(point.x, rect.top)
+        ctx.line_to(point.x, rect.top+rect.height)
         draw_utils.draw_stroke(ctx, 2, self.CurrentPosColor)
+
+    def set_current_position(self, abs_point):
+        rel_point = self.transform_point(abs_point)
+        if rel_point.x<0:
+            rel_point.x = 0
+        self.audio_block.set_current_pos(rel_point.x/AudioBlockBox.PIXEL_PER_SAMPLE)
+
+    def is_abs_within_current_pos(self, abs_point):
+        x = self.audio_block.current_pos*AudioBlockBox.PIXEL_PER_SAMPLE
+        playhead = self.abs_reverse_transform_point(Point(x, 0))
+        spread = 2
+        return playhead.x- spread<=abs_point.x<=playhead.x+spread
 
     def show_div_marks(self, ctx, beat):
         ctx.save()
