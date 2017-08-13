@@ -52,10 +52,10 @@ class AudioTimedGroup(AudioBlock):
         self.lock.release()
         self.calculate_duration()
 
-    def stretch_block_to(self, block, end_pos):
+    def stretch_block_to(self, block, end_pos, beat):
         self.lock.acquire()
         start_pos = self.blocks_positions[block.get_id()]
-        block.set_duration(end_pos-start_pos)
+        block.set_duration(end_pos-start_pos, beat)
         self.lock.release()
         self.calculate_duration()
 

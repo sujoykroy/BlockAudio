@@ -18,7 +18,7 @@ class AudioSequencer(Gtk.Window):
         self.set_events(Gdk.EventMask.POINTER_MOTION_MASK)
 
         self.opened_audio_blocks = dict()
-        self.beat = Beat(bpm=120/8,
+        self.beat = Beat(bpm=120/1,
                          sample_rate=AudioBlock.SampleRate,
                          pixel_per_sample=AudioBlockBox.PIXEL_PER_SAMPLE)
         self.tge_rect = Rect(0, 0, 1, 1)
@@ -196,6 +196,8 @@ class AudioSequencer(Gtk.Window):
 
     def add_block_group_button_clicked(self, widget):
         timed_group = AudioTimedGroup()
+        timed_group.set_duration_unit(AudioBlock.TIME_UNIT_BEAT, self.beat)
+        timed_group.set_duration_value(1, self.beat)
         self.timed_group_list.append(timed_group)
         self.build_timed_group_list_view()
 
@@ -245,6 +247,12 @@ class AudioSequencer(Gtk.Window):
 
     def get_selected_instru(self):
         model, tree_iter = self.instru_list_view.get_selection().get_selected()
+        if tree_iter:
+            return model.get_value(tree_iter, 1)
+        return None
+
+    def get_selected_timed_group(self):
+        model, tree_iter = self.timed_group_list_view.get_selection().get_selected()
         if tree_iter:
             return model.get_value(tree_iter, 1)
         return None

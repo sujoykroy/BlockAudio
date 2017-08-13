@@ -256,17 +256,22 @@ class AudioBlockBox(object):
         ctx.restore()
         draw_utils.draw_stroke(ctx, 2, self.DivColor)
 
-    def show_beat_marks(self, ctx, beat):
+    def show_beat_marks(self, ctx, beat, rect):
+        start_point = self.transform_point(Point(rect.left, 0))
+        end_point = self.transform_point(Point(rect.left+rect.width, 0))
         ctx.save()
-        self.pre_draw(ctx)
-        ctx.new_path()
-        for x in beat.get_beat_pixels(self.x, self.x+self.width):
-            ctx.save()
-            ctx.move_to(x, 0)
-            ctx.line_to(x, self.height)
-            ctx.restore()
+        #self.pre_draw(ctx)
+        #ctx.new_path()
+        for index, x in beat.get_beat_pixels(start_point.x, end_point.x):
+            point = self.abs_reverse_transform_point(Point(x, 0))
+            #ctx.save()
+            ctx.move_to(point.x, 0)
+            ctx.line_to(point.x, rect.height)
+            #ctx.restore()
+            draw_utils.draw_stroke(ctx, 2, self.BeatColor)
+            draw_utils.draw_text(ctx, "{0}".format(index+1), point.x, 0)
+
         ctx.restore()
-        draw_utils.draw_stroke(ctx, 2, self.BeatColor)
 
     def show_outer_border_line(self, ctx):
         ctx.save()

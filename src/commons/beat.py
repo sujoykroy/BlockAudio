@@ -42,11 +42,13 @@ class Beat(object):
         return int(div*self.beat_sample_unit*1./(self.div_per_beat))
 
     def get_beat_pixels(self, start_pixel, end_pixel):
-        start_pixel = (start_pixel//self.beat_pixel_unit)*self.beat_pixel_unit
+        beat_index = (start_pixel//self.beat_pixel_unit)
+        start_pixel = beat_index*self.beat_pixel_unit
         pixel = start_pixel
         while pixel<end_pixel:
-            yield pixel
+            yield beat_index, pixel
             pixel += self.beat_pixel_unit
+            beat_index += 1
 
     def get_div_pixels(self, start_pixel, end_pixel):
         start_pixel = (start_pixel//self.div_pixel_unit)*self.div_pixel_unit
