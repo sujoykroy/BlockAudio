@@ -148,6 +148,14 @@ class AudioSequencer(Gtk.Window):
         self.show_all()
         self.load_block(self.timed_group_list[0])
 
+    def rename_timed_group(self, timed_group, new_name):
+        for tg in self.timed_group_list:
+            if new_name == tg.get_name():
+                return False
+        timed_group.set_name(new_name)
+        self.build_timed_group_list_view()
+        return True
+
     def add_page(self, page, name):
         if isinstance(page, TimedGroupPage):
             if page.audio_block.get_id() in self.opened_audio_blocks:
@@ -160,7 +168,7 @@ class AudioSequencer(Gtk.Window):
         close_button = gui_utils.CloseTabButton(self.notebook_tab_close_button_clicked, page)
 
         tab_label = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        tab_label.pack_start(Gtk.Label(name), expand=True, fill=True, padding=0)
+        tab_label.pack_start(page.get_tab_name_label(), expand=True, fill=True, padding=0)
         tab_label.pack_start(close_button, expand=False, fill=False, padding=5)
         tab_label.show_all()
 

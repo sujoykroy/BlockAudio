@@ -24,6 +24,8 @@ class TimedGroupPage(object):
             block_box = AudioBlockBox(self.audio_block)
         self.block_box = block_box
 
+        self.tab_name_label = Gtk.Label()
+
         self.name_label = Gtk.Label("Name")
         self.name_entry = Gtk.Entry()
         self.name_save_button = Gtk.Button("Rename")
@@ -130,8 +132,14 @@ class TimedGroupPage(object):
         self.vcontainer.pack_end(
                 self.timed_group_editor_hscrollbar, expand=False, fill=False, padding=0)
 
+    def update_tab_name_label(self):
+        self.tab_name_label.set_markup("{0}<sup> bg</sup>".format(self.audio_block.get_name()))
+
     def get_widget(self):
         return self.vcontainer
+
+    def get_tab_name_label(self):
+        return self.tab_name_label
 
     def init_show(self):
         self.audio_block.build(self.owner.beat)
@@ -139,6 +147,7 @@ class TimedGroupPage(object):
         self.duration_unit_combo_box.set_value(self.audio_block.duration_unit)
         self.duration_spin_button.set_value(self.audio_block.duration_value)
 
+        self.update_tab_name_label()
         self.vcontainer.show_all()
         self.pause_button.hide()
         self.audio_block_edit_box.hide()
@@ -148,7 +157,11 @@ class TimedGroupPage(object):
             self.audio_server.remove_block(self.audio_block)
 
     def name_save_button_clicked(self, widget):
-        pass
+        new_name = self.name_entry.get_text().strip()
+        if new_name and new_name != self.audio_block.get_name():
+            self.owner.rename_timed_group(self.audio_block, new_name)
+            self.name_entry.set_text(self.audio_block.get_name())
+            self.update_tab_name_label()
 
     def duration_spin_button_value_changed(self, widget):
         self.audio_block.set_duration_value(widget.get_value(), self.owner.beat)
@@ -212,7 +225,7 @@ class TimedGroupPage(object):
     def on_timed_group_editor_draw(self, widget, ctx):
         if not self.block_box:
             return
-        self.block_box.show_div_marks(ctx, self.owner.beat)
+        self.block_box.show_div_marks(ctx, self.owner.beat, self.tge_rect)
 
         rect = self.block_box.get_rect(Point(0,0), Point(self.tge_rect.width, self.tge_rect.height))
         self.block_box.draw(ctx, rect)

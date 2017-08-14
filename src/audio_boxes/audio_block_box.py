@@ -24,7 +24,8 @@ class AudioBlockBox(object):
     DescFillColor = Color.parse("FFFFFF")
     DescTextColor = Color.parse("000000")
     HeadBoxColor= Color.parse("f458e0")
-    TailBoxColor= Color.parse("42b6ff")
+    TailBoxColor = Color.parse("42b6ff")
+    BeatTextColor = Color.parse("aaaaaa")
 
     def __init__(self, audio_block, parent_box=None, fill_color="0000FF"):
         self.id_num = AudioBlockBox.IdSeed+1
@@ -244,33 +245,29 @@ class AudioBlockBox(object):
         spread = 2
         return playhead.x- spread<=abs_point.x<=playhead.x+spread
 
-    def show_div_marks(self, ctx, beat):
+    def show_div_marks(self, ctx, beat, rect):
+        start_point = self.transform_point(Point(rect.left, 0))
+        end_point = self.transform_point(Point(rect.left+rect.width, 0))
         ctx.save()
         self.pre_draw(ctx)
-        ctx.new_path()
-        for x in beat.get_div_pixels(self.x, self.x+self.width):
-            ctx.save()
+        for x in beat.get_div_pixels(start_point.x, end_point.x, 50/self.scale_x):
             ctx.move_to(x, 0)
-            ctx.line_to(x, self.height)
-            ctx.restore()
+            ctx.line_to(x, rect.height)
         ctx.restore()
-        draw_utils.draw_stroke(ctx, 2, self.DivColor)
+        draw_utils.draw_stroke(ctx, 1, self.DivColor)
 
     def show_beat_marks(self, ctx, beat, rect):
         start_point = self.transform_point(Point(rect.left, 0))
         end_point = self.transform_point(Point(rect.left+rect.width, 0))
         ctx.save()
-        #self.pre_draw(ctx)
-        #ctx.new_path()
-        for index, x in beat.get_beat_pixels(start_point.x, end_point.x):
+        for index, x in beat.get_beat_pixels(start_point.x, end_point.x, 50/self.scale_x):
             point = self.abs_reverse_transform_point(Point(x, 0))
-            #ctx.save()
             ctx.move_to(point.x, 0)
             ctx.line_to(point.x, rect.height)
-            #ctx.restore()
-            draw_utils.draw_stroke(ctx, 2, self.BeatColor)
-            draw_utils.draw_text(ctx, "{0}".format(index+1), point.x, 0)
-
+            draw_utils.draw_stroke(ctx, 1, self.BeatColor)
+            draw_utils.draw_text(
+                ctx, "{0}".format(index+1), point.x+2, 0,
+                font_name="8", text_color=self.BeatTextColor)
         ctx.restore()
 
     def show_outer_border_line(self, ctx):
