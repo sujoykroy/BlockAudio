@@ -40,7 +40,7 @@ class TimedGroupPage(object):
             "value-changed", self.duration_spin_button_value_changed)
 
         self.duration_unit_combo_box = gui_utils.NameValueComboBox()
-        self.duration_unit_combo_box.build_and_set_model(AudioBlock.get_time_unit_model())
+        self.duration_unit_combo_box.build_and_set_model(AudioBlockTime.get_model())
         self.duration_unit_combo_box.set_value("Beat")
         self.duration_unit_combo_box.connect(
             "changed", self.duration_unit_combo_box_changed)
@@ -104,7 +104,7 @@ class TimedGroupPage(object):
 
         self.child_block_duration_unit_combo_box = gui_utils.NameValueComboBox()
         self.child_block_duration_unit_combo_box.build_and_set_model(
-             AudioBlock.get_time_unit_model())
+             AudioBlockTime.get_model())
         self.child_block_duration_unit_combo_box.set_value("Beat")
         self.child_block_duration_unit_combo_box.connect(
             "changed", self.child_block_duration_unit_combo_box_changed)
@@ -119,7 +119,7 @@ class TimedGroupPage(object):
 
         self.child_block_start_unit_combo_box = gui_utils.NameValueComboBox()
         self.child_block_start_unit_combo_box.build_and_set_model(
-            AudioBlock.get_time_unit_model())
+            AudioBlockTime.get_model())
         self.child_block_start_unit_combo_box.set_value("Beat")
         self.child_block_start_unit_combo_box.connect(
             "changed", self.child_block_start_unit_combo_box_changed)
@@ -205,8 +205,8 @@ class TimedGroupPage(object):
     def init_show(self):
         self.audio_block.build(self.owner.beat)
         self.name_entry.set_text(self.audio_block.get_name())
-        self.duration_unit_combo_box.set_value(self.audio_block.duration_unit)
-        self.duration_spin_button.set_value(self.audio_block.duration_value)
+        self.duration_unit_combo_box.set_value(self.audio_block.duration_time.unit)
+        self.duration_spin_button.set_value(self.audio_block.duration_time.value)
 
         self.update_tab_name_label()
         self.vcontainer.show_all()
@@ -221,8 +221,8 @@ class TimedGroupPage(object):
         if self.selected_block_box:
             block = self.selected_block_box.audio_block
             self.child_block_note_combo_box.set_value(block.music_note)
-            self.child_block_duration_spin_button.set_value(block.duration_value)
-            self.child_block_duration_unit_combo_box.set_value(block.duration_unit)
+            self.child_block_duration_spin_button.set_value(block.duration_time.value)
+            self.child_block_duration_unit_combo_box.set_value(block.duration_time.unit)
             #self.child_block_start_spin_button.set_value(block.duration_value)
             #self.child_block_start_unit_combo_box.set_value(block.duration_unit)
             self.child_block_edit_box.show()
@@ -246,7 +246,7 @@ class TimedGroupPage(object):
 
     def duration_unit_combo_box_changed(self, widget):
         self.audio_block.set_duration_unit(widget.get_value(), self.owner.beat)
-        self.duration_spin_button.set_value(self.audio_block.duration_value)
+        self.duration_spin_button.set_value(self.audio_block.duration_time.value)
 
     def child_block_duration_spin_button_value_changed(self, widget):
         pass

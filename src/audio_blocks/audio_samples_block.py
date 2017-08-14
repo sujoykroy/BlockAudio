@@ -8,7 +8,7 @@ class AudioSamplesBlock(AudioBlock):
     def __init__(self, samples):
         super(AudioSamplesBlock, self).__init__()
         self.samples = samples
-        self.duration = samples.shape[0]
+        self.set_sample_count(samples.shape[0])
         self.inclusive_duration = self.duration
 
     def get_samples(self, frame_count, start_from=None, use_loop=True, loop=None):
