@@ -47,14 +47,14 @@ class AudioTimedGroupBox(AudioBlockBox):
                 height = end_y
         self.height = height
 
-    def draw(self, ctx, visible_area=None):
+    def draw(self, ctx, visible_area=None, selected_box=None):
         for block_box_id in self.block_zs:
             box = self.block_boxes.get(block_box_id)
             if visible_area and \
                 (box.x+box.scale_x*box.width<visible_area.left or \
                  box.x>visible_area.left+visible_area.width):
                 continue
-            box.draw(ctx)
+            box.draw(ctx, is_selected=(selected_box==box))
 
     def find_box_at(self, point):
         rel_point = self.transform_point(point)

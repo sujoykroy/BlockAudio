@@ -36,18 +36,14 @@ class TimedGroupPage(object):
         self.duration_spin_button.set_digits(3)
         self.duration_spin_button.set_range(0, 10000000)
         self.duration_spin_button.set_increments(1, 1)
-        self.duration_spin_button.connect("value-changed", self.duration_spin_button_value_changed)
+        self.duration_spin_button.connect(
+            "value-changed", self.duration_spin_button_value_changed)
 
         self.duration_unit_combo_box = gui_utils.NameValueComboBox()
-        self.duration_unit_combo_box.build_and_set_model([
-            ["Seconds", AudioBlock.TIME_UNIT_SECONDS],
-            ["Beat", AudioBlock.TIME_UNIT_BEAT],
-            ["Div", AudioBlock.TIME_UNIT_DIV],
-            ["Sample", AudioBlock.TIME_UNIT_SAMPLE]
-        ])
+        self.duration_unit_combo_box.build_and_set_model(AudioBlock.get_time_unit_model())
         self.duration_unit_combo_box.set_value("Beat")
         self.duration_unit_combo_box.connect(
-            "changed", self.duration_unit_combo_box_value_changed)
+            "changed", self.duration_unit_combo_box_changed)
 
         #play/pause
         self.play_button = Gtk.Button("Play")
@@ -86,15 +82,80 @@ class TimedGroupPage(object):
         self.timed_group_editor_hscrollbar.connect(
             "value-changed", self.on_timed_group_editor_scrollbar_value_changed, "horiz")
 
-        self.audio_block_edit_box = Gtk.Grid()
-        self.audio_block_note_list = gui_utils.NameValueComboBox()
-        self.audio_block_note_list.build_and_set_model(MusicNote.get_names())
-        self.audio_block_note_list.connect("changed", self.audio_block_note_list_changed)
+        #child block edit
+        self.child_block_edit_box = Gtk.Grid()
+        self.child_block_edit_box.set_column_spacing(2)
 
-        self.audio_block_edit_box.attach(
-                Gtk.Label("Note"), left=1, top=1, width=1, height=1)
-        self.audio_block_edit_box.attach(
-                self.audio_block_note_list, left=2, top=1, width=1, height=1)
+        self.child_block_instru_edit_button = Gtk.Button("Instrument")
+        self.child_block_block_edit_button = Gtk.Button("Block")
+
+        self.child_block_note_combo_box = gui_utils.NameValueComboBox()
+        self.child_block_note_combo_box.build_and_set_model(MusicNote.get_names())
+        self.child_block_note_combo_box.connect(
+            "changed", self.child_block_note_combo_box_changed)
+
+        self.child_block_duration_label = Gtk.Label("Duration")
+        self.child_block_duration_spin_button =  Gtk.SpinButton()
+        self.child_block_duration_spin_button.set_digits(3)
+        self.child_block_duration_spin_button.set_range(0, 10000000)
+        self.child_block_duration_spin_button.set_increments(1, 1)
+        self.child_block_duration_spin_button.connect(
+            "value-changed", self.child_block_duration_spin_button_value_changed)
+
+        self.child_block_duration_unit_combo_box = gui_utils.NameValueComboBox()
+        self.child_block_duration_unit_combo_box.build_and_set_model(
+             AudioBlock.get_time_unit_model())
+        self.child_block_duration_unit_combo_box.set_value("Beat")
+        self.child_block_duration_unit_combo_box.connect(
+            "changed", self.child_block_duration_unit_combo_box_changed)
+
+        self.child_block_start_label = Gtk.Label("Start At")
+        self.child_block_start_spin_button =  Gtk.SpinButton()
+        self.child_block_start_spin_button.set_digits(3)
+        self.child_block_start_spin_button.set_range(0, 10000000)
+        self.child_block_start_spin_button.set_increments(1, 1)
+        self.child_block_start_spin_button.connect(
+            "value-changed", self.child_block_start_spin_button_value_changed)
+
+        self.child_block_start_unit_combo_box = gui_utils.NameValueComboBox()
+        self.child_block_start_unit_combo_box.build_and_set_model(
+            AudioBlock.get_time_unit_model())
+        self.child_block_start_unit_combo_box.set_value("Beat")
+        self.child_block_start_unit_combo_box.connect(
+            "changed", self.child_block_start_unit_combo_box_changed)
+
+        self.child_block_instru_label = Gtk.Label("Instrument")
+        self.child_block_block_label = Gtk.Label("Block")
+
+        self.child_block_edit_box.attach(
+                self.child_block_instru_label, left=5, top=2, width=2, height=1)
+        self.child_block_edit_box.attach(
+                self.child_block_block_label, left=5, top=2, width=2, height=1)
+
+        self.child_block_edit_box.attach(
+                self.child_block_instru_edit_button, left=7, top=2, width=1, height=1)
+        self.child_block_edit_box.attach(
+                self.child_block_block_edit_button, left=7, top=2, width=1, height=1)
+
+        self.child_block_edit_box.attach(
+                Gtk.Label("Note"), left=5, top=1, width=1, height=1)
+        self.child_block_edit_box.attach(
+                self.child_block_note_combo_box, left=6, top=1, width=1, height=1)
+
+        self.child_block_edit_box.attach(
+                Gtk.Label("Start At"), left=1, top=1, width=1, height=1)
+        self.child_block_edit_box.attach(
+                self.child_block_start_spin_button, left=2, top=1, width=1, height=1)
+        self.child_block_edit_box.attach(
+                self.child_block_start_unit_combo_box, left=3, top=1, width=1, height=1)
+
+        self.child_block_edit_box.attach(
+                Gtk.Label("Duration"), left=1, top=2, width=1, height=1)
+        self.child_block_edit_box.attach(
+                self.child_block_duration_spin_button, left=2, top=2, width=1, height=1)
+        self.child_block_edit_box.attach(
+                self.child_block_duration_unit_combo_box, left=3, top=2, width=1, height=1)
+
 
         self.control_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.control_grid = Gtk.Grid()
@@ -128,7 +189,7 @@ class TimedGroupPage(object):
         self.vcontainer.pack_start(
                 self.hcontainer, expand=True, fill=True, padding=5)
         self.vcontainer.pack_end(
-                self.audio_block_edit_box, expand=False, fill=False, padding=0)
+                self.child_block_edit_box, expand=False, fill=False, padding=0)
         self.vcontainer.pack_end(
                 self.timed_group_editor_hscrollbar, expand=False, fill=False, padding=0)
 
@@ -150,11 +211,23 @@ class TimedGroupPage(object):
         self.update_tab_name_label()
         self.vcontainer.show_all()
         self.pause_button.hide()
-        self.audio_block_edit_box.hide()
+        self.child_block_edit_box.hide()
 
     def cleanup(self):
         if self.audio_server:
             self.audio_server.remove_block(self.audio_block)
+
+    def show_audio_block_info(self):
+        if self.selected_block_box:
+            block = self.selected_block_box.audio_block
+            self.child_block_note_combo_box.set_value(block.music_note)
+            self.child_block_duration_spin_button.set_value(block.duration_value)
+            self.child_block_duration_unit_combo_box.set_value(block.duration_unit)
+            #self.child_block_start_spin_button.set_value(block.duration_value)
+            #self.child_block_start_unit_combo_box.set_value(block.duration_unit)
+            self.child_block_edit_box.show()
+        else:
+            self.child_block_edit_box.hide()
 
     def name_save_button_clicked(self, widget):
         new_name = self.name_entry.get_text().strip()
@@ -171,9 +244,29 @@ class TimedGroupPage(object):
             self.block_box.set_size(self.tge_rect.width)
         self.redraw_timed_group_editor()
 
-    def duration_unit_combo_box_value_changed(self, widget):
+    def duration_unit_combo_box_changed(self, widget):
         self.audio_block.set_duration_unit(widget.get_value(), self.owner.beat)
         self.duration_spin_button.set_value(self.audio_block.duration_value)
+
+    def child_block_duration_spin_button_value_changed(self, widget):
+        pass
+
+    def child_block_duration_unit_combo_box_changed(self, widget):
+        pass
+
+    def child_block_start_spin_button_value_changed(self, widget):
+        pass
+
+    def child_block_start_unit_combo_box_changed(self, widget):
+        pass
+
+    def child_block_note_combo_box_changed(self, widget):
+        if self.selected_block_box:
+            note_name = self.child_block_note_combo_box.get_value()
+            if note_name:
+                self.selected_block_box.audio_block.set_note(note_name)
+                self.block_box.update_size()
+                self.timed_group_editor.queue_draw()
 
     def play_button_clicked(self, wiget):
         if not self.audio_server:
@@ -195,21 +288,6 @@ class TimedGroupPage(object):
         self.redraw_timed_group_editor()
         return self.audio_server and not self.audio_server.paused
 
-    def show_audio_block_info(self):
-        if self.selected_block_box:
-            self.audio_block_note_list.set_value(self.selected_block_box.audio_block.music_note)
-            self.audio_block_edit_box.show()
-        else:
-            self.audio_block_edit_box.hide()
-
-    def audio_block_note_list_changed(self, widget):
-        if self.selected_block_box:
-            note_name = self.audio_block_note_list.get_value()
-            if note_name:
-                self.selected_block_box.audio_block.set_note(note_name)
-                self.block_box.update_size()
-                self.timed_group_editor.queue_draw()
-
     def redraw_timed_group_editor(self):
         self.timed_group_editor.queue_draw()
 
@@ -228,7 +306,7 @@ class TimedGroupPage(object):
         self.block_box.show_div_marks(ctx, self.owner.beat, self.tge_rect)
 
         rect = self.block_box.get_rect(Point(0,0), Point(self.tge_rect.width, self.tge_rect.height))
-        self.block_box.draw(ctx, rect)
+        self.block_box.draw(ctx, rect, self.selected_block_box)
 
         self.block_box.show_beat_marks(ctx, self.owner.beat, self.tge_rect)
         self.block_box.show_current_position(ctx, rect)
@@ -273,6 +351,7 @@ class TimedGroupPage(object):
                         self.mouse_point)
                 else:
                     self.current_pos_selected = False
+                    self.redraw_timed_group_editor()
 
             if event.type == Gdk.EventType._2BUTTON_PRESS:#double button click
                 if isinstance(self.selected_box, AudioBlockBox):

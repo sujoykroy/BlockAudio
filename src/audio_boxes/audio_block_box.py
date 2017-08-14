@@ -181,7 +181,17 @@ class AudioBlockBox(object):
                 0, self.height*(1-self.SpreadFraction),
                 self.width, self.height*self.SpreadFraction)
 
-    def draw(self, ctx):
+    SpreadMidColor = Color.parse("00FFFF")
+    SpreadSelectedColor = Color.parse("ffff00")
+
+    def draw(self, ctx, is_selected=False):
+        if is_selected:
+            spread_fill_color = self.SpreadSelectedColor
+            desc_fill_color = self.SpreadSelectedColor
+        else:
+            spread_fill_color = self.SpreadMidColor
+            desc_fill_color = self.DescFillColor
+
         ctx.save()
         self.pre_draw(ctx)
         self.draw_spread_box_path(ctx)
@@ -189,7 +199,7 @@ class AudioBlockBox(object):
             ctx,
             (self.width, self.height),
             ((0, self.SpreadBoxStartColor),
-             (0.5, Color.parse("00FFFF")),
+             (0.5, spread_fill_color),
              (1, self.SpreadBoxStartColor)))
         ctx.restore()
 
@@ -204,13 +214,14 @@ class AudioBlockBox(object):
         desc = self.audio_block.get_description()
         text_start_point = self.abs_reverse_transform_point(Point(0, 0))
         text_start_point.x += self.head_box.abs_width
+
         desc_rect = draw_utils.draw_text(ctx, desc,
                     text_start_point.x, text_start_point.y,
                     corner=2, padding=2,
                     font_name=self.FontName,
                     height=10, fit_height=True,
                     border_color = self.DescBorderColor,
-                    back_color=self.DescFillColor,
+                    back_color=desc_fill_color,
                     text_color=self.DescTextColor)
 
         if isinstance(self.audio_block, AudioSamplesBlock):

@@ -2,6 +2,11 @@ import numpy
 import time
 from ..commons import MidiMessage, AudioMessage
 
+class BlockTime(object):
+    def __init__(self, xvalue, unit):
+        self.value = pos_value
+        self.unit = unit
+
 class AudioBlock(object):
     FramesPerBuffer = 1024
     SampleRate = 44100.
@@ -25,6 +30,15 @@ class AudioBlock(object):
         AudioBlock.NameSeed += 1
         elapsed_time = round(time.time()-AudioBlock._APP_EPOCH_TIME, 3)
         return "{0}_{1}".format(elapsed_time, AudioBlock.NameSeed).replace(".", "")
+
+    @classmethod
+    def get_time_unit_model(cls):
+        return [
+            ["Seconds", cls.TIME_UNIT_SECONDS],
+            ["Beat", cls.TIME_UNIT_BEAT],
+            ["Div", cls.TIME_UNIT_DIV],
+            ["Sample", cls.TIME_UNIT_SAMPLE]
+        ]
 
     def __init__(self):
         self.paused = False
