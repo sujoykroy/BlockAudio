@@ -5,13 +5,15 @@ import numpy
 from ..commons import AudioMessage
 
 class AudioTimedGroup(AudioBlock):
+    blank_data = None
     def __init__(self):
         super(AudioTimedGroup, self).__init__()
         self.blocks = []
         self.blocks_positions = dict()
 
         self.lock = threading.RLock()
-        self.blank_data = self.get_blank_data(AudioBlock.FramesPerBuffer)
+        if AudioTimedGroup.blank_data is None:
+            AudioTimedGroup.blank_data = self.get_blank_data(AudioBlock.FramesPerBuffer)
 
     def add_block(self, block, at, sample_unit=False):
         ret = True
@@ -90,7 +92,7 @@ class AudioTimedGroup(AudioBlock):
             self.lock.acquire()
             if i<len(self.blocks):
                 block = self.blocks[i]
-                block_start_pos = self.blocks_positions[block.get_id()]
+                block_start_pos = self.blocks_positions[block.get_id()].sample_count
             else:
                 block = None
             self.lock.release()
@@ -98,7 +100,7 @@ class AudioTimedGroup(AudioBlock):
             if not block:
                 break
 
-            end_at = self.blocks_positions[block.get_id()].sample_count+block.duration
+            end_at = block_start_pos+block.duration
             if end_at>duration:
                 duration = end_at
         self.inclusive_duration = duration
@@ -158,7 +160,9 @@ class AudioTimedGroup(AudioBlock):
             if start_from is None:
                 self.current_pos = start_pos
 
-            if data.shape[0]<frame_count:
+            if data is None:
+                data = self.blank_data[:frame_count, :]
+            elif data.shape[0]<frame_count:
                 blank_shape = (frame_count - data.shape[0], AudioBlock.ChannelCount)
                 data = numpy.append(data, numpy.zeros(blank_shape, dtype=numpy.float32), axis=0)
 
@@ -172,7 +176,7 @@ class AudioTimedGroup(AudioBlock):
             self.lock.acquire()
             if i<len(self.blocks):
                 block = self.blocks[i]
-                block_start_pos = self.blocks_positions[block.get_id()]
+                block_start_pos = self.blocks_positions[block.get_id()].sample_count
             else:
                 block = None
             self.lock.release()
@@ -216,7 +220,7 @@ class AudioTimedGroup(AudioBlock):
                 samples  = samples + block_samples
 
         if  samples is None:
-            samples = self.blank_data[:frame_count, :]
+            samples = self.blank_data[:int(frame_count), :]
 
         start_pos += frame_count
 

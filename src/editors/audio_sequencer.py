@@ -6,6 +6,7 @@ from ..commons import Point, Beat, KeyboardState, Rect
 from ..commons import MusicNote
 from .. import gui_utils
 from timed_group_page import TimedGroupPage
+from file_instru_page import FileInstruPage
 
 from gi.repository import GObject
 GObject.threads_init()
@@ -18,6 +19,7 @@ class AudioSequencer(Gtk.Window):
         self.set_events(Gdk.EventMask.POINTER_MOTION_MASK)
 
         self.opened_audio_blocks = dict()
+        self.opened_instrus = dict()
         self.beat = Beat(bpm=120/1,
                          sample_rate=AudioBlock.SampleRate,
                          pixel_per_sample=AudioBlockBox.PIXEL_PER_SAMPLE)
@@ -49,6 +51,8 @@ class AudioSequencer(Gtk.Window):
         self.instru_list_view.append_column(
             Gtk.TreeViewColumn("Name", Gtk.CellRendererText(), text=0))
         self.instru_list_view.set_headers_visible(False)
+        self.instru_list_view.connect(
+            "row-activated", self.instru_list_view_row_activated)
 
         self.add_file_instru_button = Gtk.Button("Add File Instrument")
         self.add_file_instru_button.connect("clicked", self.add_file_instru_button_clicked)
@@ -161,6 +165,10 @@ class AudioSequencer(Gtk.Window):
             if page.audio_block.get_id() in self.opened_audio_blocks:
                 return
             self.opened_audio_blocks[page.audio_block.get_id()] = page
+        elif isinstance(page, FileInstruPage):
+            if page.instru.get_id() in self.opened_instrus:
+                return
+            self.opened_instrus[page.instru.get_id()] = page
 
         page.init_show()
         widget = page.get_widget()
@@ -181,12 +189,20 @@ class AudioSequencer(Gtk.Window):
         if isinstance(page, TimedGroupPage):
             if page.audio_block.get_id() in self.opened_audio_blocks:
                 del self.opened_audio_blocks[page.audio_block.get_id()]
+        elif isinstance(page, FileInstruPage):
+            if page.instru.get_id() in self.opened_instrus:
+                del self.opened_instrus[page.instru.get_id()]
 
     def load_block(self, audio_block):
         self.add_page(
             TimedGroupPage(self, audio_block),
             audio_block.get_name()
         )
+
+    def load_instru(self, instru):
+        if isinstance(instru, AudioFileInstru):
+            instru_page = FileInstruPage(self, instru)
+        self.add_page(instru_page, instru.get_name())
 
     def add_file_instru_button_clicked(self, widget):
         filename = gui_utils.FileOp.choose_file(self, "open", "audio")
@@ -215,6 +231,13 @@ class AudioSequencer(Gtk.Window):
             block = AudioFileBlock(filename)
             self.file_block_list.append(block)
             self.build_file_block_list_view()
+
+    def instru_list_view_row_activated(self, tree_view, path, column):
+        treeiter = tree_view.get_model().get_iter(path)
+        if not treeiter:
+            return
+        instru = tree_view.get_model().get_value(treeiter, 1)
+        self.load_instru(instru)
 
     def timed_group_list_view_row_activated(self, tree_view, path, column):
         treeiter = tree_view.get_model().get_iter(path)

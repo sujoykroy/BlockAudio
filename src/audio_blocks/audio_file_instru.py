@@ -7,15 +7,23 @@ class AudioFileInstru(AudioSamplesInstru):
     def __init__(self, filename, sample_count=None):
         self.filename = filename
         self.sample_count = sample_count
+        self.base_block = None
         AudioSamplesInstru.__init__(
                     self,
                     None)
         self.set_name(os.path.basename(filename))
 
+    def get_base_block(self):
+        if self.base_block is None:
+            self.base_block = self.get_file_block()
+        return self.base_block
+
+    def get_file_block(self):
+        return AudioFileBlock(self.filename, self.sample_count)
+
     def get_samples_for(self, note):
         if self.samples is None:
-            self.base_block = AudioFileBlock(self.filename, self.sample_count)
-            self.samples = self.base_block.get_full_samples()
+            self.samples = self.get_base_block().get_full_samples()
         return super(AudioFileInstru, self).get_samples_for(note)
 
     @classmethod

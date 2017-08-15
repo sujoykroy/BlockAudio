@@ -60,10 +60,10 @@ class FileSelect(Gtk.HBox):
         self.selection_entry.connect("activate", self.selection_entry_activated)
         #self.selection_entry.set_editable(False)
 
-        self.select_button = create_new_image_button("file_select")
+        self.select_button = Gtk.Button("Open")
         self.select_button.connect("clicked", self.select_button_clicked)
 
-        self.refresh_button = create_new_image_button("refresh")
+        self.refresh_button = Gtk.Button("Reload")
         self.refresh_button.connect("clicked", self.refresh_button_clicked)
 
         self.file_types = file_types
@@ -120,6 +120,7 @@ class FileChooserDialog(Gtk.FileChooserDialog):
             filename = self.get_filename()
             if filename:
                 self.audio_file_block = AudioFileBlock(filename, preload=False)
+                self.audio_file_block.set_no_loop()
                 self.audio_file_block.play()
                 self.audio_server.play()
                 self.audio_server.add_block(self.audio_file_block)

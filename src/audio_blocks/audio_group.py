@@ -63,6 +63,10 @@ class AudioGroup(AudioBlock):
 
         if  self._samples is None:
             self._samples = self.blank_data.copy()
+        elif self._samples.shape[0]<frame_count:
+            blank_count = frame_count - self._samples.shape[0]
+            self._samples = numpy.append(
+                self._samples, self.blank_data[blank_count, :].copy(), axis=0)
         audio_message.samples = self._samples
         return audio_message
 

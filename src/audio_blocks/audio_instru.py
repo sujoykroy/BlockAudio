@@ -25,6 +25,9 @@ class AudioInstru(object):
     def get_name(self):
         return self.name
 
+    def get_id(self):
+        return self.id_num
+
     def __eq__(self, other):
         return isinstance(other, AudioInstru) and other.id_num == self.id_num
 

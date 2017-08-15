@@ -14,19 +14,18 @@ class AudioSamplesBlock(AudioBlock):
     def get_samples(self, frame_count, start_from=None, use_loop=True, loop=None):
         if self.paused:
             return None
-
         if start_from is None:
             start_pos = self.current_pos
         else:
             start_pos = start_from
 
-        if loop is None:
+        if loop is None or self.loop == self.LOOP_NEVER_EVER:
             loop = self.loop
 
         audio_message = AudioMessage()
         data = None
 
-        if loop and use_loop:
+        if loop and loop != self.LOOP_NEVER_EVER and use_loop:
             spread = frame_count
             start_init_pos = start_pos
             elapsed_pos = 0
@@ -67,7 +66,9 @@ class AudioSamplesBlock(AudioBlock):
             if data is None:
                 data = numpy.zeros((frame_count, self.ChannelCount), dtype=numpy.float32)
             if start_from is None:
+                self.lock.acquire()
                 self.current_pos = start_pos
+                self.lock.release()
         else:
             if self.midi_channel is not None and start_pos == 0:
                 audio_message.midi_messages.append(self.new_midi_note_on_message(0))
@@ -77,7 +78,9 @@ class AudioSamplesBlock(AudioBlock):
             if self.midi_channel is not None and start_pos == self.duration and data.shape[0]>0:
                 audio_message.midi_messages.append(self.new_midi_note_off_message(data.shape[0]))
             if start_from is None:
+                self.lock.acquire()
                 self.current_pos = start_pos
+                self.lock.release()
 
         if data.shape[0]<frame_count:
             blank_shape = (frame_count - data.shape[0], AudioBlock.ChannelCount)

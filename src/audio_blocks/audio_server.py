@@ -70,6 +70,7 @@ class AudioServer(threading.Thread):
                 self.output_device_index = device_info["index"]
 
         self.audio_queue = Queue.Queue()
+        self.block_positions_queue = Queue.Queue()
         self.audio_group = AudioGroup()
         self.should_exit = False
         self.paused = False
@@ -89,6 +90,9 @@ class AudioServer(threading.Thread):
     def remove_block(self, block):
         self.audio_group.remove_block(block)
 
+    def get_latency(self):
+        return self.stream.get_output_latency()
+
     def run(self):
         self.stream = self.pa_manager.open(
                 format=pyaudio.paFloat32,
@@ -103,7 +107,19 @@ class AudioServer(threading.Thread):
         buffer_time = AudioBlock.FramesPerBuffer/float(AudioBlock.SampleRate)
         period = buffer_time*self.buffer_mult
         last_time = 0
+        block_positions = None
+        played_at = None
         while not self.should_exit:
+            if block_positions is None:
+                try:
+                    block_positions, played_at = self.block_positions_queue.get(block=False)
+                except Queue.Empty:
+                    pass
+            if block_positions and played_at<=time.time():
+                for block, pos in block_positions:
+                    block.play_pos = pos
+                block_positions = None
+
             if (time.time()-last_time)>period and not self.paused:
                 audio_message = self.audio_group.get_samples(AudioBlock.FramesPerBuffer)
                 if audio_message is not None:
@@ -127,8 +143,9 @@ class AudioServer(threading.Thread):
                             midi_message.mido_message
                         ))
                 if audio_message.block_positions:
-                    for block, pos in audio_message.block_positions:
-                        block.play_pos = pos
+                    played_at = time_info["output_buffer_dac_time"]+time.time()
+                    self.block_positions_queue.put(
+                        (audio_message.block_positions, played_at))
 
                 self.audio_queue.task_done()
             except Queue.Empty:

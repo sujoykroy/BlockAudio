@@ -64,8 +64,8 @@ class AudioFileBlock(AudioSamplesBlock):
         self.calculate_duration()
         self.set_sample_count(self.inclusive_duration)
 
-    def get_audio_clip(self, filename):
-        audioclip = movie_editor.AudioFileClip(filename)
+    def get_audio_clip(self):
+        audioclip = movie_editor.AudioFileClip(self.filename)
         if self.preload and audioclip.duration>self.MAX_DURATION_SECONDS:
             audioclip = audioclip.set_duration(self.MAX_DURATION_SECONDS)
         return audioclip
@@ -74,7 +74,7 @@ class AudioFileBlock(AudioSamplesBlock):
         if self.sample_count:
             self.inclusive_duration = self.sample_count
         else:
-            audioclip = self.get_audio_clip(self.filename)
+            audioclip = self.get_audio_clip()
             self.inclusive_duration = int(audioclip.duration*AudioBlock.SampleRate)
 
     def load_samples(self):
@@ -84,7 +84,7 @@ class AudioFileBlock(AudioSamplesBlock):
         self.last_access_at = time.time()
         if self.samples_loaded:
             return
-        audioclip = self.get_audio_clip(self.filename)
+        audioclip = self.get_audio_clip()
         try:
             self.samples = audioclip.to_soundarray(buffersize=1000).astype(numpy.float32)
         except IOError as e:

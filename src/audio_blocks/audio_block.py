@@ -1,5 +1,6 @@
 import numpy
 import time
+import threading
 from ..commons import MidiMessage, AudioMessage
 
 class AudioBlockTime(object):
@@ -71,6 +72,7 @@ class AudioBlock(object):
     LOOP_NONE = 0
     LOOP_INFINITE = 1
     LOOP_STRETCH = 2
+    LOOP_NEVER_EVER = 3
 
     IdSeed = 0
     NameSeed = 0
@@ -95,6 +97,7 @@ class AudioBlock(object):
         self.midi_velocity = 64
         self.play_pos = 0
         self.instru = None
+        self.lock = threading.RLock()
 
         self.id_num = AudioBlock.IdSeed
         AudioBlock.IdSeed += 1
@@ -122,6 +125,9 @@ class AudioBlock(object):
         self.music_note = note
         if self.instru:
             self.instru.refill_block(self)
+
+    def set_no_loop(self):
+        self.loop = self.LOOP_NEVER_EVER
 
     def new_midi_note_on_message(self, delay):
         return MidiMessage.note_on(
@@ -188,6 +194,17 @@ class AudioBlock(object):
             desc = self.instru.get_description()
             return desc
         return self.name
+
+    def is_reading_finished(self):
+        return self.current_pos >= self.duration
+
+    def is_playing_finished(self):
+        return self.play_pos >= self.duration
+
+    def rewind(self):
+        self.lock.acquire()
+        self.current_pos = 0
+        self.lock.release()
 
     @staticmethod
     def get_blank_data(sample_count):
