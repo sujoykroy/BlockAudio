@@ -14,7 +14,7 @@ class TimedGroupPage(object):
         self.audio_server = None
         self.current_pos_selected = False
 
-        self.selected_block_box = None
+        self.selected_child_block_box = None
         self.selected_box = None
         self.tge_rect = Rect(0, 0, 1, 1)
 
@@ -218,13 +218,15 @@ class TimedGroupPage(object):
             self.audio_server.remove_block(self.audio_block)
 
     def show_audio_block_info(self):
-        if self.selected_block_box:
-            block = self.selected_block_box.audio_block
+        if self.selected_child_block_box:
+            block = self.selected_child_block_box.audio_block
             self.child_block_note_combo_box.set_value(block.music_note)
-            self.child_block_duration_spin_button.set_value(block.duration_time.value)
             self.child_block_duration_unit_combo_box.set_value(block.duration_time.unit)
-            #self.child_block_start_spin_button.set_value(block.duration_value)
-            #self.child_block_start_unit_combo_box.set_value(block.duration_unit)
+            self.child_block_duration_spin_button.set_value(block.duration_time.value)
+            self.child_block_start_spin_button.set_value(
+                    self.audio_block.get_block_position_value(block))
+            self.child_block_start_unit_combo_box.set_value(
+                    self.audio_block.get_block_position_unit(block))
             self.child_block_edit_box.show()
         else:
             self.child_block_edit_box.hide()
@@ -249,22 +251,42 @@ class TimedGroupPage(object):
         self.duration_spin_button.set_value(self.audio_block.duration_time.value)
 
     def child_block_duration_spin_button_value_changed(self, widget):
-        pass
+        if not self.selected_child_block_box:
+            return
+        child_block = self.selected_child_block_box.audio_block
+        child_block.set_duration_value(widget.get_value(), self.owner.beat)
+        self.selected_child_block_box.update_size()
+        self.block_box.update_size()
+        self.redraw_timed_group_editor()
 
     def child_block_duration_unit_combo_box_changed(self, widget):
-        pass
+        if not self.selected_child_block_box:
+            return
+        child_block = self.selected_child_block_box.audio_block
+        child_block.set_duration_unit(widget.get_value(), self.owner.beat)
+        self.child_block_duration_spin_button.set_value(child_block.duration_time.value)
 
     def child_block_start_spin_button_value_changed(self, widget):
-        pass
+        if not self.selected_child_block_box:
+            return
+        child_block = self.selected_child_block_box.audio_block
+        self.audio_block.set_block_position_value(child_block, widget.get_value(), self.owner.beat)
+        self.selected_child_block_box.update_size()
+        self.block_box.update_size()
+        self.block_box.update_box_position(self.selected_child_block_box)
+        self.redraw_timed_group_editor()
 
     def child_block_start_unit_combo_box_changed(self, widget):
-        pass
+        if not self.selected_child_block_box:
+            return
+        child_block = self.selected_child_block_box.audio_block
+        self.audio_block.set_block_position_unit(child_block, widget.get_value(), self.owner.beat)
 
     def child_block_note_combo_box_changed(self, widget):
-        if self.selected_block_box:
+        if self.selected_child_block_box:
             note_name = self.child_block_note_combo_box.get_value()
             if note_name:
-                self.selected_block_box.audio_block.set_note(note_name)
+                self.selected_child_block_box.audio_block.set_note(note_name)
                 self.block_box.update_size()
                 self.timed_group_editor.queue_draw()
 
@@ -306,7 +328,7 @@ class TimedGroupPage(object):
         self.block_box.show_div_marks(ctx, self.owner.beat, self.tge_rect)
 
         rect = self.block_box.get_rect(Point(0,0), Point(self.tge_rect.width, self.tge_rect.height))
-        self.block_box.draw(ctx, rect, self.selected_block_box)
+        self.block_box.draw(ctx, rect, self.selected_child_block_box)
 
         self.block_box.show_beat_marks(ctx, self.owner.beat, self.tge_rect)
         self.block_box.show_current_position(ctx, rect)
@@ -355,9 +377,9 @@ class TimedGroupPage(object):
 
             if event.type == Gdk.EventType._2BUTTON_PRESS:#double button click
                 if isinstance(self.selected_box, AudioBlockBox):
-                    self.selected_block_box = self.selected_box
+                    self.selected_child_block_box = self.selected_box
                 else:
-                    self.selected_block_box = None
+                    self.selected_child_block_box = None
                 self.show_audio_block_info()
         elif event.button == 3:#Left mouse
             self.selected_box = self.block_box

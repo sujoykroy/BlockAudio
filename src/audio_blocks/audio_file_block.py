@@ -62,7 +62,7 @@ class AudioFileBlock(AudioSamplesBlock):
             self.samples_loaded = False
             AudioFileBlockCache.Files[self.filename] = self
         self.calculate_duration()
-        self.duration = self.inclusive_duration
+        self.set_sample_count(self.inclusive_duration)
 
     def get_audio_clip(self, filename):
         audioclip = movie_editor.AudioFileClip(filename)

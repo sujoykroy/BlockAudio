@@ -1,4 +1,4 @@
-from audio_block import AudioBlock
+from audio_block import AudioBlock, AudioBlockTime
 import threading
 import time
 import numpy
@@ -23,7 +23,7 @@ class AudioTimedGroup(AudioBlock):
             self.blocks.append(block)
         else:
             ret = False
-        self.blocks_positions[block.get_id()]=at
+        self.blocks_positions[block.get_id()]=AudioBlockTime(at)
         self.lock.release()
         self.calculate_duration()
         return ret
@@ -44,18 +44,39 @@ class AudioTimedGroup(AudioBlock):
         block.set_name(name)
 
     def get_block_position(self, block):
-        return self.blocks_positions.get(block.get_id(), -1)
+        block_time = self.blocks_positions.get(block.get_id())
+        return block_time.sample_count
 
-    def set_block_at(self, block, pos):
+    def get_block_position_value(self, block):
+        block_time = self.blocks_positions.get(block.get_id())
+        return block_time.value
+
+    def get_block_position_unit(self, block):
+        block_time = self.blocks_positions.get(block.get_id())
+        return block_time.unit
+
+    def set_block_position_value(self, block, value, beat):
         self.lock.acquire()
-        self.blocks_positions[block.get_id()] = pos
+        self.blocks_positions[block.get_id()].set_value(value, beat)
         self.lock.release()
         self.calculate_duration()
 
-    def stretch_block_to(self, block, end_pos, beat):
+    def set_block_position_unit(self, block, unit, beat):
         self.lock.acquire()
-        start_pos = self.blocks_positions[block.get_id()]
-        block.set_duration(end_pos-start_pos, beat)
+        self.blocks_positions[block.get_id()].set_unit(unit, beat)
+        self.lock.release()
+        self.calculate_duration()
+
+    def set_block_position(self, block, sample_count, beat):
+        self.lock.acquire()
+        self.blocks_positions[block.get_id()].set_sample_count(sample_count, beat)
+        self.lock.release()
+        self.calculate_duration()
+
+    def stretch_block_to(self, block, sample_count, beat):
+        self.lock.acquire()
+        start_pos = self.blocks_positions[block.get_id()].sample_count
+        block.set_duration(sample_count-start_pos, beat)
         self.lock.release()
         self.calculate_duration()
 
@@ -77,7 +98,7 @@ class AudioTimedGroup(AudioBlock):
             if not block:
                 break
 
-            end_at = self.blocks_positions[block.get_id()]+block.duration
+            end_at = self.blocks_positions[block.get_id()].sample_count+block.duration
             if end_at>duration:
                 duration = end_at
         self.inclusive_duration = duration

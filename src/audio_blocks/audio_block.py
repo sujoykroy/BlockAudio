@@ -48,7 +48,7 @@ class AudioBlockTime(object):
         elif self.unit == self.TIME_UNIT_DIV:
             self.value = self.sample_count*1./beat.get_div_sample(1)
         elif self.unit == self.TIME_UNIT_SECONDS:
-            self.value = self.sample_count*1./self.SampleRate
+            self.value = self.sample_count*1./beat.sample_rate
         else:
             self.value = self.sample_count
 
@@ -58,7 +58,7 @@ class AudioBlockTime(object):
         elif self.unit == self.TIME_UNIT_DIV:
             sample_count = beat.get_div_sample(self.value)
         elif self.unit == self.TIME_UNIT_SECONDS:
-            sample_count = self.value*AudioBlock.SampleRate
+            sample_count = self.value*beat.sample_rate
         else:
             sample_count = self.value
         self.sample_count = int(round(sample_count))
