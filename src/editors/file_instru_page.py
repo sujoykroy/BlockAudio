@@ -7,6 +7,7 @@ import cairo
 from ..audio_blocks import AudioServer
 from ..audio_boxes import AudioBlockBox
 import time
+from samples_block_viewer import SamplesBlockViewer
 
 class FileInstruPage(object):
     CurveColor = Color.parse("FFF422")
@@ -15,7 +16,9 @@ class FileInstruPage(object):
         self.owner = owner
         self.instru = instru
         self.audio_server = None
-        self.audio_block = None
+        self.audio_block = self.instru.get_file_block()
+        self.audio_block.set_no_loop()
+
         self.image_surface = None
         self.tab_name_label = Gtk.Label()
 
@@ -38,8 +41,8 @@ class FileInstruPage(object):
         self.pause_button = Gtk.Button("Pause")
         self.pause_button.connect("clicked", self.pause_button_clicked)
 
-        self.graph_board = Gtk.DrawingArea()
-        self.graph_board.connect("draw", self.on_graph_board_draw)
+        self.block_viewer = SamplesBlockViewer(owner=self.owner)
+        self.block_viewer.set_block(self.audio_block)
 
         self.info_grid = Gtk.Grid()
         self.info_grid.set_column_spacing(5)
@@ -63,7 +66,7 @@ class FileInstruPage(object):
 
         self.root_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.root_box.pack_start(self.control_box, expand=False, fill=False, padding=0)
-        self.root_box.pack_start(self.graph_board, expand=True, fill=True, padding=5)
+        self.root_box.pack_start(self.block_viewer, expand=True, fill=True, padding=5)
 
     def update_tab_name_label(self):
         self.tab_name_label.set_markup("{0}<sup> fii</sup>".format(self.instru.get_name()))
@@ -101,9 +104,6 @@ class FileInstruPage(object):
     def play_button_clicked(self, wiget):
         if not self.audio_server:
             self.audio_server = AudioServer.get_default()
-        if not self.audio_block:
-            self.audio_block = self.instru.get_file_block()
-            self.audio_block.set_no_loop()
             self.audio_server.add_block(self.audio_block)
         self.audio_block.rewind()
         self.audio_server.play(self.audio_block)
@@ -116,7 +116,7 @@ class FileInstruPage(object):
             self.audio_block.pause()
             self.play_button.show()
             self.pause_button.hide()
-        self.graph_board.queue_draw()
+        self.block_viewer.redraw()
         return not self.audio_block.paused
 
     def pause_button_clicked(self, wiget):
@@ -125,86 +125,3 @@ class FileInstruPage(object):
         self.audio_block.pause()
         self.play_button.show()
         self.pause_button.hide()
-
-    PlayHeadColor = Color.parse("FF0000")
-    LineColor = Color.parse("000000")
-
-    def on_graph_board_draw(self, widget, ctx):
-        w = widget.get_allocated_width()
-        h = widget.get_allocated_height()
-
-        if not self.image_surface or \
-               self.image_surface.get_width() != w or \
-               self.image_surface.get_height() != h:
-            self.build_image_surface(w*.8, h)
-
-        ctx.save()
-        ctx.scale(w*1./self.image_surface.get_width(), h*1./self.image_surface.get_height())
-        ctx.set_source_surface(self.image_surface)
-        ctx.paint()
-        ctx.restore()
-
-        #channel sperator
-        audioclip = moviepy.editor.AudioFileClip(self.instru.filename)
-        for ch in xrange(1, audioclip.nchannels):
-            ctx.new_path()
-            ctx.save()
-            ctx.scale(1, h/4.)
-            ctx.translate(0, ch*2)
-            ctx.move_to(0, 0)
-            ctx.line_to(w, 0)
-            ctx.restore()
-            draw_utils.draw_stroke(ctx, 1, self.LineColor)
-
-        #show current playhead
-        if self.audio_block:
-            pos = self.audio_block.play_pos
-            pos_frac = pos*1./self.audio_block.duration
-            ctx.move_to(w*pos_frac, 0)
-            ctx.line_to(w*pos_frac, h)
-            draw_utils.draw_stroke(ctx, 1, self.PlayHeadColor)
-
-        #show div marks
-        duration = self.instru.get_base_block().duration
-        scale_x = w*1./(duration*AudioBlockBox.PIXEL_PER_SAMPLE)
-
-        for x in self.owner.beat.get_div_pixels(0, w, 1/scale_x):
-            print x
-            x *= scale_x
-            ctx.move_to(x, 0)
-            ctx.line_to(x, h)
-            draw_utils.draw_stroke(ctx, 1, AudioBlockBox.DivColor)
-
-        #show beat marks
-        for index, x in self.owner.beat.get_beat_pixels(0, w, 50/scale_x):
-            x *= scale_x
-            ctx.move_to(x, 0)
-            ctx.line_to(x, h)
-            draw_utils.draw_stroke(ctx, 1, AudioBlockBox.BeatColor)
-            draw_utils.draw_text(
-                ctx, "{0}".format(index+1),x+2, 0,
-                font_name="8", text_color=AudioBlockBox.BeatTextColor)
-
-        ctx.rectangle(0, 0, w, h)
-        draw_utils.draw_stroke(ctx, 1, self.LineColor)
-
-    def build_image_surface(self, w, h):
-        w = int(w)
-        h = int(h)
-        surface = cairo.ImageSurface(cairo.FORMAT_A8, w, h)
-        ctx = cairo.Context(surface)
-        audioclip = moviepy.editor.AudioFileClip(self.instru.filename)
-        xunit = audioclip.duration*1./w
-        for ch in xrange(audioclip.nchannels):
-            ctx.save()
-            ctx.scale(1, h/4.)
-            ctx.translate(0, ch*2)
-            for x in xrange(w):
-                sample = audioclip.get_frame(x*xunit)
-                if x == 0:
-                    ctx.move_to(x, 1-sample[ch])
-                else:
-                    ctx.line_to(x, 1-sample[ch])
-            ctx.restore()
-            draw_utils.draw_stroke(ctx, 1, self.CurveColor)
-        self.image_surface = surface

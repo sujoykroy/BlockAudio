@@ -80,10 +80,10 @@ class AudioFileBlock(AudioSamplesBlock):
     def load_samples(self):
         if not self.preload:
             return
-
-        self.last_access_at = time.time()
         if self.samples_loaded:
             return
+
+        self.last_access_at = time.time()
         audioclip = self.get_audio_clip()
         try:
             self.samples = audioclip.to_soundarray(buffersize=1000).astype(numpy.float32)
@@ -99,6 +99,7 @@ class AudioFileBlock(AudioSamplesBlock):
 
         AudioFileBlockCache.TotalMemory  += self.samples.nbytes
         self.samples_loaded = True
+        self.clean_memory(exclude=self)
 
     def get_full_samples(self):
         self.load_samples()
@@ -116,7 +117,6 @@ class AudioFileBlock(AudioSamplesBlock):
         if self.preload:
             if not self.samples_loaded:
                 self.load_samples()
-                self.clean_memory(exclude=self)
         return AudioSamplesBlock.get_samples(
                 self, frame_count, start_from=start_from, use_loop=use_loop, loop=loop)
 

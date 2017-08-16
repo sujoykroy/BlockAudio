@@ -42,10 +42,10 @@ class Beat(object):
         return int(div*self.beat_sample_unit*1./(self.div_per_beat))
 
     def get_beat_pixels(self, start_pixel, end_pixel, spread):
-        beat_index = (start_pixel//self.beat_pixel_unit)
+        beat_index = max((start_pixel//self.beat_pixel_unit)-1, 0)
         start_pixel = beat_index*self.beat_pixel_unit
         pixel = start_pixel
-        mult = int(round(spread*1./self.beat_pixel_unit))
+        mult = int(spread*1./self.beat_pixel_unit)
         if mult<=0:
             mult = 1
         while pixel<end_pixel:
@@ -54,9 +54,9 @@ class Beat(object):
             beat_index += mult
 
     def get_div_pixels(self, start_pixel, end_pixel, spread):
-        start_pixel = (start_pixel//self.div_pixel_unit)*self.div_pixel_unit
+        start_pixel = max((start_pixel//self.div_pixel_unit)-1, 0)*self.div_pixel_unit
         pixel = start_pixel
-        mult = int(round(spread*1./self.beat_pixel_unit))
+        mult = int(spread*1./self.beat_pixel_unit)
         if mult<=0:
             mult = 1
         while pixel<end_pixel:
