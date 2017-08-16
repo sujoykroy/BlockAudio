@@ -204,6 +204,7 @@ class AudioBlock(object):
     def rewind(self):
         self.lock.acquire()
         self.current_pos = 0
+        self.play_pos = 0
         self.lock.release()
 
     @staticmethod

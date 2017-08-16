@@ -75,14 +75,15 @@ class AudioServer(threading.Thread):
         self.should_exit = False
         self.paused = False
         self.buffer_mult = buffer_mult
+        self.stream = None
         AudioServer.Servers.append(self)
         self.start()
 
-    def play(self):
+    def play(self, block=None):
         self.paused = False
-
-    def pause(self):
-        self.paused = True
+        if block:
+            block.play()
+            self.audio_group.play()
 
     def add_block(self, block):
         self.audio_group.add_block(block)
@@ -102,7 +103,6 @@ class AudioServer(threading.Thread):
                 frames_per_buffer = AudioBlock.FramesPerBuffer,
                 stream_callback=self.stream_callback,
                 output_device_index=self.output_device_index)
-        self.stream.start_stream()
         self.audio_group.play()
         buffer_time = AudioBlock.FramesPerBuffer/float(AudioBlock.SampleRate)
         period = buffer_time*self.buffer_mult
@@ -123,7 +123,9 @@ class AudioServer(threading.Thread):
             if (time.time()-last_time)>period and not self.paused:
                 audio_message = self.audio_group.get_samples(AudioBlock.FramesPerBuffer)
                 if audio_message is not None:
-                    self.audio_queue.put(audio_message, block=True)
+                    if audio_message.samples is not None:
+                        self.audio_queue.put(audio_message, block=True)
+
             last_time = time.time()
             time.sleep(period)
         self.stream.stop_stream()
@@ -136,6 +138,8 @@ class AudioServer(threading.Thread):
             try:
                 audio_message = self.audio_queue.get(block=False)
                 data = audio_message.samples
+                if data is None:
+                    data = self.audio_group.blank_data.copy()
                 if audio_message.midi_messages:
                     for midi_message in audio_message.midi_messages:
                         self.midi_thread.midi_queue.put((

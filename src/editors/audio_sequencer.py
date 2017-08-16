@@ -160,6 +160,14 @@ class AudioSequencer(Gtk.Window):
         self.build_timed_group_list_view()
         return True
 
+    def rename_instru(self, instru, new_name):
+        for ins in self.instru_list:
+            if new_name == ins.get_name():
+                return False
+        instru.set_name(new_name)
+        self.build_instru_list_view()
+        return True
+
     def add_page(self, page, name):
         if isinstance(page, TimedGroupPage):
             if page.audio_block.get_id() in self.opened_audio_blocks:

@@ -21,6 +21,10 @@ class AudioFileInstru(AudioSamplesInstru):
     def get_file_block(self):
         return AudioFileBlock(self.filename, self.sample_count)
 
+    def get_duration_seconds(self):
+        clip = moviepy_editor.AudioFileClip(self.filename)
+        return clip.duration
+
     def get_samples_for(self, note):
         if self.samples is None:
             self.samples = self.get_base_block().get_full_samples()

@@ -32,6 +32,7 @@ class AudioGroup(AudioBlock):
 
         self._samples = None
         audio_message = AudioMessage()
+
         for i in xrange(block_count):
 
             self.lock.acquire()
@@ -61,9 +62,7 @@ class AudioGroup(AudioBlock):
             else:
                 self._samples = self._samples + block_samples
 
-        if  self._samples is None:
-            self._samples = self.blank_data.copy()
-        elif self._samples.shape[0]<frame_count:
+        if self._samples is not None and self._samples.shape[0]<frame_count:
             blank_count = frame_count - self._samples.shape[0]
             self._samples = numpy.append(
                 self._samples, self.blank_data[blank_count, :].copy(), axis=0)
