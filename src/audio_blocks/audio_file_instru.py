@@ -30,6 +30,12 @@ class AudioFileInstru(AudioSamplesInstru):
             self.samples = self.get_base_block().get_full_samples()
         return super(AudioFileInstru, self).get_samples_for(note)
 
+    def set_filename(self, filename):
+        self.filename = filename
+        if self.base_block:
+            self.base_block.set_filename(filename)
+        self.rebuild_note_samples()
+
     @classmethod
     def load(cls, filepath, prefix='', recursive=True, test=False):
         if os.path.isdir(filepath):

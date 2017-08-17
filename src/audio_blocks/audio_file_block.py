@@ -11,6 +11,9 @@ class AudioFileBlockCache(object):
 
 class AudioFileClipSamples(object):
     def __init__(self, filename):
+        self.set_filename(filename)
+
+    def set_filename(self, filename):
         self.audioclip = movie_editor.AudioFileClip(filename)
         sample_count = int(round(self.audioclip.duration*AudioBlock.SampleRate))
         self.shape = (sample_count, self.audioclip.nchannels)
@@ -63,6 +66,16 @@ class AudioFileBlock(AudioSamplesBlock):
             AudioFileBlockCache.Files[self.filename] = self
         self.calculate_duration()
         self.set_sample_count(self.inclusive_duration)
+
+    def set_filename(self, filename):
+        self.unload_samples()
+        self.remove_from_cache()
+
+        self.filename = filename
+        if isinstance(self.samples, AudioFileClipSamples):
+            self.samples.set_filename(filename)
+        else:
+            AudioFileBlockCache.Files[self.filename] = self
 
     def get_audio_clip(self):
         audioclip = movie_editor.AudioFileClip(self.filename)
@@ -122,6 +135,15 @@ class AudioFileBlock(AudioSamplesBlock):
 
     def get_description(self):
         return self.name
+
+    def remove_from_cache(self):
+        if self.filename in AudioFileBlockCache.Files:
+            del AudioFileBlockCache.Files[self.filename]
+        self.last_access_at = None
+
+    def destroy(self):
+        self.unload_samples()
+        self.remove_from_cache()
 
     @staticmethod
     def clean_memory(exclude):

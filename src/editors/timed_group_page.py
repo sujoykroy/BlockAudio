@@ -295,6 +295,7 @@ class TimedGroupPage(object):
             self.audio_server = AudioServer.get_default()
             self.audio_server.add_block(self.audio_block)
         self.audio_server.play(self.audio_block)
+        self.play_button.hide()
         self.pause_button.show()
         self.timer_id = GObject.timeout_add(100, self.on_playahead_movement)
 

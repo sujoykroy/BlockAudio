@@ -68,6 +68,8 @@ class SamplesBlockViewer(Gtk.Box):
 
     def set_block(self, audio_samples_block):
         self.audio_block = audio_samples_block
+        self.image_surface = None
+        self.image_name = None
         self.redraw()
 
     def redraw(self):
@@ -228,14 +230,20 @@ class SamplesBlockViewer(Gtk.Box):
             extra_w = w*(self.board_zoom-1)
             ox = max(extra_w*self.board_init_offset.x, 0)
             ox += diff.x
-            self.board_offset_x = min(max(ox/extra_w, 0), 1)
+            if extra_w<=0:
+                self.board_offset_x = 0.
+            else:
+                self.board_offset_x = min(max(ox/extra_w, 0), 1)
             self.graph_board_hscrollbar.set_value(self.board_offset_x)
 
             h = self.graph_board.get_allocated_height()
             extra_h = h*(self.board_zoom-1)
             oy = max(extra_h*self.board_init_offset.y, 0)
             oy += diff.y
-            self.board_offset_y = min(max(oy/extra_h, 0), 1)
+            if extra_h<=0:
+                self.board_offset_y = 0.
+            else:
+                self.board_offset_y = min(max(oy/extra_h, 0), 1)
             self.graph_board_vscrollbar.set_value(self.board_offset_y)
 
             self.redraw()

@@ -29,3 +29,7 @@ class AudioSamplesInstru(AudioInstru):
 
     def refill_block(self, block):
         block.samples = self.get_samples_for(block.music_note)
+
+    def rebuild_note_samples(self):
+        for note_name in self.notes_samples:
+            self.notes_samples[note_name][:, :] = self.get_samples_for(note_name)

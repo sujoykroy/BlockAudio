@@ -29,7 +29,7 @@ class FileInstruPage(object):
 
         self.source_label = Gtk.Label("Source")
         self.filename_select = FileSelect("audio")
-        #self.filename_select.connect("file-selected", self.filename_selected)
+        self.filename_select.connect("file-selected", self.audio_file_selected)
 
         self.duration_heading_label = Gtk.Label("Duration")
         self.duration_value_entry = Gtk.Entry()
@@ -78,7 +78,6 @@ class FileInstruPage(object):
         return self.tab_name_label
 
     def init_show(self):
-        #self.instru.build(self.owner.beat)
         self.name_entry.set_text(self.instru.get_name())
         self.filename_select.set_filename(self.instru.filename)
         self.show_duration()
@@ -100,6 +99,17 @@ class FileInstruPage(object):
             if self.owner.rename_instru(self.instru, new_name):
                 self.update_tab_name_label()
         self.name_entry.set_text(self.instru.get_name())
+
+    def audio_file_selected(self, widget):
+        self.instru.set_filename(self.filename_select.filename)
+        if self.audio_server:
+            self.audio_server.remove_block(self.audio_block)
+            self.play_button.show()
+            self.pause_button.hide()
+        self.audio_block.unload_samples()
+        self.audio_block = self.instru.get_file_block()
+        self.block_viewer.set_block(self.audio_block)
+        self.show_duration()
 
     def play_button_clicked(self, wiget):
         if not self.audio_server:

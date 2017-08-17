@@ -192,6 +192,7 @@ class AudioSequencer(Gtk.Window):
         self.block_instru_notebook.show()
 
     def notebook_tab_close_button_clicked(self, widget, page):
+        page.cleanup()
         self.block_instru_notebook.remove(page.get_widget())
 
         if isinstance(page, TimedGroupPage):
