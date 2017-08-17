@@ -98,7 +98,7 @@ class SamplesBlockViewer(Gtk.Box):
         ctx.paint()
         ctx.restore()
 
-        #channel sperator
+        #channel separator
         for ch in xrange(1, self.audio_block.samples.shape[1]):
             ctx.new_path()
             ctx.save()
@@ -113,16 +113,10 @@ class SamplesBlockViewer(Gtk.Box):
             ctx.restore()
             draw_utils.draw_stroke(ctx, 1, self.LineColor)
 
-        #show current playhead
-        if self.audio_block:
-            pos = self.audio_block.play_pos
-            pos_frac = pos*1./self.audio_block.duration
-            ctx.move_to(w*pos_frac, 0)
-            ctx.line_to(w*pos_frac, h)
-            draw_utils.draw_stroke(ctx, 1, self.PlayHeadColor)
+        xunit_no_zoom =  self.audio_block.duration*AudioBlockBox.PIXEL_PER_SAMPLE/float(w)
+        xunit = xunit_no_zoom/self.board_zoom
 
         #show div marks
-        xunit = self.audio_block.duration*AudioBlockBox.PIXEL_PER_SAMPLE/(w*self.board_zoom)
         ofx = w*(self.board_zoom-1)*self.board_offset_x*xunit
         ctx.save()
         ctx.translate(
@@ -130,7 +124,7 @@ class SamplesBlockViewer(Gtk.Box):
                     -h*(self.board_zoom-1)*self.board_offset_y)
         ctx.scale(self.board_zoom, self.board_zoom)
         for x in self.owner.beat.get_div_pixels(ofx, ofx+w*xunit, 10*xunit):
-            x /= xunit
+            x /= xunit_no_zoom
             ctx.move_to(x, 0)
             ctx.line_to(x, h)
         ctx.restore()
@@ -143,18 +137,32 @@ class SamplesBlockViewer(Gtk.Box):
                     -h*(self.board_zoom-1)*self.board_offset_y)
         ctx.scale(self.board_zoom, self.board_zoom)
         for index, x in self.owner.beat.get_beat_pixels(ofx, ofx+w*xunit, 50*xunit):
-            x /= xunit
+            x /= xunit_no_zoom
             ctx.move_to(x, 0)
             ctx.line_to(x, h)
         ctx.restore()
+        draw_utils.draw_stroke(ctx, 1, self.LineColor)
 
         for index, x in self.owner.beat.get_beat_pixels(ofx, ofx+w*xunit, 50*xunit):
             x /= xunit
-            x *= self.board_zoom
             x -= w*(self.board_zoom-1)*self.board_offset_x
             draw_utils.draw_text(
                 ctx, "{0}".format(index+1),x+2, 0,
                 font_name="8", text_color=AudioBlockBox.BeatTextColor)
+
+        #show current playhead
+        if self.audio_block:
+            pos = self.audio_block.play_pos
+            pos_pixel = pos*AudioBlockBox.PIXEL_PER_SAMPLE/xunit_no_zoom
+            ctx.save()
+            ctx.translate(
+                    -w*(self.board_zoom-1)*self.board_offset_x,
+                    -h*(self.board_zoom-1)*self.board_offset_y)
+            ctx.scale(self.board_zoom, self.board_zoom)
+            ctx.move_to(pos_pixel, 0)
+            ctx.line_to(pos_pixel, h)
+            ctx.restore()
+            draw_utils.draw_stroke(ctx, 1, self.PlayHeadColor)
 
         ctx.rectangle(0, 0, w, h)
         draw_utils.draw_stroke(ctx, 1, self.LineColor)
@@ -194,7 +202,14 @@ class SamplesBlockViewer(Gtk.Box):
         self.mouse_init_point.y = self.mouse_point.y
         self.move_board = False
         if event.button == 1:#Left mouse
-            pass
+            w = self.graph_board.get_allocated_width()
+            extra_w = w*(self.board_zoom-1)
+            ox = max(extra_w*self.board_offset_x, 0)
+            ox += self.mouse_point.x
+            xunit = self.audio_block.duration*1./(w*self.board_zoom)
+            self.audio_block.set_current_pos(int(ox*xunit))
+            self.audio_block.set_play_pos(int(ox*xunit))
+            self.redraw()
         elif event.button == 3:#Left mouse
             self.move_board = True
             self.board_init_offset.x = self.board_offset_x
@@ -230,7 +245,44 @@ class SamplesBlockViewer(Gtk.Box):
             mult = 1.
         elif event.direction == Gdk.ScrollDirection.DOWN:
             mult = -1.
+
+        w = self.graph_board.get_allocated_width()
+        extra_w = w*(self.board_zoom-1)
+        ox = max(extra_w*self.board_offset_x, 0)
+
+        h = self.graph_board.get_allocated_height()
+        extra_h = h*(self.board_zoom-1)
+        oy = max(extra_h*self.board_offset_y, 0)
+
+        rel_point = self.mouse_point.copy()
+        rel_point.x += ox
+        rel_point.x /= self.board_zoom
+        rel_point.y += oy
+        rel_point.y /= self.board_zoom
+
         self.board_zoom = max(self.board_zoom*(1+mult*.01), 1)
+
+        new_extra_w = w*(self.board_zoom-1)
+        new_extra_h = h*(self.board_zoom-1)
+
+        after_point = rel_point.copy()
+        after_point.x *= self.board_zoom
+        after_point.y *= self.board_zoom
+        after_point.x -= ox
+        after_point.y -= oy
+
+        diff = after_point.diff(self.mouse_point)
+        if new_extra_w<=0:
+            self.board_offset_x = 0
+        else:
+            self.board_offset_x = min(max((ox+diff.x)/new_extra_w, 0), 1)
+        if new_extra_h<=0:
+            self.board_offset_y = 0
+        else:
+            self.board_offset_y = min(max((oy+diff.y)/new_extra_h, 0), 1)
+
+        self.graph_board_hscrollbar.set_value(self.board_offset_x)
+        self.graph_board_hscrollbar.set_value(self.board_offset_x)
         self.redraw()
 
     def on_graph_board_scrollbar_value_changed(self, scrollbar, scroll_dir):

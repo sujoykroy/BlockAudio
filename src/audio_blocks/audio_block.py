@@ -112,6 +112,9 @@ class AudioBlock(object):
     def set_current_pos(self, current_pos):
         self.current_pos = current_pos
 
+    def set_play_pos(self, play_pos):
+        self.play_pos = play_pos
+
     def set_music_note(self, note):
         self.music_note = note
 
