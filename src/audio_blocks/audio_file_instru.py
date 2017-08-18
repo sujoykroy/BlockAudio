@@ -34,7 +34,13 @@ class AudioFileInstru(AudioSamplesInstru):
         self.filename = filename
         if self.base_block:
             self.base_block.set_filename(filename)
-        self.rebuild_note_samples()
+        self.readjust_note_blocks()
+
+    def readjust_note_blocks(self):
+        for note_name in self.notes_samples:
+            self.notes_samples[note_name] = self.get_samples_for(note_name)
+        for block in self.note_blocks:
+            block.fit_to_samples()
 
     @classmethod
     def load(cls, filepath, prefix='', recursive=True, test=False):

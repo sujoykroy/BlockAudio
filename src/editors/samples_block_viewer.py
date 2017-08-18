@@ -2,6 +2,7 @@ from gi.repository import Gtk, Gdk
 import cairo
 from ..commons import draw_utils, Color, Point
 from ..audio_boxes import AudioBlockBox
+from ..audio_blocks import AudioFileBlock
 
 class SamplesBlockViewer(Gtk.Box):
     CurveColor = Color.parse("FFF422")
@@ -143,7 +144,7 @@ class SamplesBlockViewer(Gtk.Box):
             ctx.move_to(x, 0)
             ctx.line_to(x, h)
         ctx.restore()
-        draw_utils.draw_stroke(ctx, 1, self.LineColor)
+        draw_utils.draw_stroke(ctx, 2, AudioBlockBox.BeatColor)
 
         for index, x in self.owner.beat.get_beat_pixels(ofx, ofx+w*xunit, 50*xunit):
             x /= xunit
@@ -185,7 +186,8 @@ class SamplesBlockViewer(Gtk.Box):
             ctx.scale(1, h*self.board_zoom/4.)
             ctx.translate(0, ch*2)
             for x in xrange(w):
-                self.audio_block.load_samples()
+                if isinstance(self.audio_block, AudioFileBlock):
+                    self.audio_block.load_samples()
                 sample = self.audio_block.samples[offset_sample+int(x*xunit), ch]
                 if x == 0:
                     ctx.move_to(x, 1-sample)

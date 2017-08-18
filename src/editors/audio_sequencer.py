@@ -7,6 +7,7 @@ from ..commons import MusicNote
 from .. import gui_utils
 from timed_group_page import TimedGroupPage
 from file_instru_page import FileInstruPage
+from formula_instru_page import FormulaInstruPage
 
 from gi.repository import GObject
 GObject.threads_init()
@@ -61,8 +62,10 @@ class AudioSequencer(Gtk.Window):
         self.formula_list_label.set_pattern("___________")
         self.formula_combo_box = gui_utils.NameValueComboBox()
         self.formula_combo_box.build_and_set_model([
-            ["Sine", SineFormulator]
+            ["Sine", SineFormulator],
+            ["Customized", None]
         ])
+        self.formula_combo_box.set_value(None)
         self.add_formula_instru_button = Gtk.Button("Add Formula Instrument")
         self.add_formula_instru_button.connect("clicked", self.add_formula_instru_button_clicked)
 
@@ -198,7 +201,7 @@ class AudioSequencer(Gtk.Window):
         if isinstance(page, TimedGroupPage):
             if page.audio_block.get_id() in self.opened_audio_blocks:
                 del self.opened_audio_blocks[page.audio_block.get_id()]
-        elif isinstance(page, FileInstruPage):
+        elif isinstance(page, FileInstruPage) or isinstance(page, FormulaInstruPage):
             if page.instru.get_id() in self.opened_instrus:
                 del self.opened_instrus[page.instru.get_id()]
 
@@ -211,6 +214,8 @@ class AudioSequencer(Gtk.Window):
     def load_instru(self, instru):
         if isinstance(instru, AudioFileInstru):
             instru_page = FileInstruPage(self, instru)
+        elif isinstance(instru, AudioFormulaInstru):
+            instru_page = FormulaInstruPage(self, instru)
         self.add_page(instru_page, instru.get_name())
 
     def add_file_instru_button_clicked(self, widget):
@@ -222,10 +227,9 @@ class AudioSequencer(Gtk.Window):
 
     def add_formula_instru_button_clicked(self, widget):
         formulator_class = self.formula_combo_box.get_value()
-        if formulator_class:
-            instru = AudioFormulaInstru(formulator=formulator_class())
-            self.instru_list.append(instru)
-            self.build_instru_list_view()
+        instru = AudioFormulaInstru(formulator=formulator_class)
+        self.instru_list.append(instru)
+        self.build_instru_list_view()
 
     def add_block_group_button_clicked(self, widget):
         timed_group = AudioTimedGroup()

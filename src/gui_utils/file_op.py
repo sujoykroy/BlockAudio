@@ -26,11 +26,11 @@ class FileOp(object):
             dialog.props.do_overwrite_confirmation = True
         if file_types == "audio":
             file_types = [["Audio", "audio/*"]]
-            dialog.set_preview_audio(True)
+            #dialog.set_preview_audio(True)
 
         for file_name, mime_type in file_types:
             if file_name == "Audio":
-                dialog.set_preview_audio(True)
+                dialog.set_preview_audio(not True)
             filter_text = Gtk.FileFilter()
             filter_text.set_name("{0} files".format(file_name))
             if mime_type.find("/")>0:
@@ -97,6 +97,16 @@ class FileSelect(Gtk.HBox):
     def refresh_button_clicked(self, widget):
         self.set_filename(self.filename)
         self.emit("file-selected")
+
+    def show(self):
+        super(FileSelect, self).show()
+        self.show_all()
+
+    def hide(self):
+        super(FileSelect, self).hide()
+        self.select_button.hide()
+        self.refresh_button.hide()
+        self.selection_entry.hide()
 
 class FileChooserDialog(Gtk.FileChooserDialog):
     def __init__(self, *args, **kwargs):

@@ -3,8 +3,10 @@ from blockaudio.audio_blocks import AudioTimedGroup, AudioFileBlock
 from blockaudio.audio_blocks import AudioFileInstru, AudioFormulaInstru
 from blockaudio import formulators
 
+instru_list = AudioFileInstru.load("/usr/share/hydrogen/data/drumkits/HipHop-2")
+instru_list1 = AudioFileInstru.load("/home/sujoy/Music/clip1.wav")
 sequencer = AudioSequencer(
-    instru_list=AudioFileInstru.load("/usr/share/hydrogen/data/drumkits/"))
+    instru_list=instru_list)
 
 files="""
 /usr/share/hydrogen/data/drumkits/HipHop-2/kick_1.wav
@@ -66,14 +68,14 @@ for nn in ["C5", "C3", "E5", "F5"]:
     t += sequencer.beat.get_div_time(1)
 
 group3 = AudioTimedGroup()
-formula_instru = AudioFormulaInstru(formulators.SineFormulator())
-formula_instru.set_base_duration(sequencer.beat.get_div_time(1))
+formula_instru = AudioFormulaInstru(formulators.SineFormulator)
+formula_instru.set_duration(sequencer.beat.get_div_time(1), sequencer.beat)
 t = 0
 for nn in ["C4", "C5", "E5", "F5"]:
     group3.add_block(formula_instru.create_note_block(nn), t)
     t += sequencer.beat.get_div_time(1)
 
-sequencer.load_block(group3)
+sequencer.load_block(group)
 
 from gi.repository import Gtk
 Gtk.main()

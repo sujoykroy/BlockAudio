@@ -24,7 +24,7 @@ class AudioBlockTime(object):
             unit = self.TIME_UNIT_SAMPLE
         self.unit = unit
         if unit == self.TIME_UNIT_SAMPLE:
-            self.sample_count = value
+            self.sample_count = int(value)
         else:
             self.sample_count = None
 
@@ -34,6 +34,9 @@ class AudioBlockTime(object):
     def set_value(self, value, beat):
         self.value = value
         self._build_sample_count(beat)
+
+    def get_seconds(self, beat):
+        return self.sample_count*1./beat.sample_rate
 
     def set_sample_count(self, sample_count, beat):
         self.sample_count = sample_count
@@ -209,6 +212,10 @@ class AudioBlock(object):
         self.current_pos = 0
         self.play_pos = 0
         self.lock.release()
+
+    def destroy(self):
+        if self.instru:
+            self.instru.remove_note_block(self)
 
     @staticmethod
     def get_blank_data(sample_count):

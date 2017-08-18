@@ -15,8 +15,8 @@ class AudioBlockBox(object):
 
     BorderColor = Color.parse("000000")
     CurrentPosColor = Color.parse("FF0000")
-    DivColor = Color.parse("CCCCCC")
-    BeatColor = Color.parse("555555")
+    DivColor = Color.parse("b5a600")
+    BeatColor = Color.parse("0098b5")
     FontName = "8"
     SpreadBoxStartColor = Color.parse("FFFFFF")
     SpreadBoxEndColor = Color.parse("FFFFFF")

@@ -58,12 +58,7 @@ class AudioFileBlock(AudioSamplesBlock):
         self.filename = filename
         self.last_access_at = None
         self.preload = preload
-        if not self.preload:
-            self.samples_loaded = True
-            self.samples = AudioFileClipSamples(self.filename)
-        else:
-            self.samples_loaded = False
-            AudioFileBlockCache.Files[self.filename] = self
+        self.samples_loaded = False
         self.calculate_duration()
         self.set_sample_count(self.inclusive_duration)
 
@@ -98,21 +93,26 @@ class AudioFileBlock(AudioSamplesBlock):
 
         self.last_access_at = time.time()
         audioclip = self.get_audio_clip()
-        try:
-            self.samples = audioclip.to_soundarray(buffersize=1000).astype(numpy.float32)
-        except IOError as e:
-            self.samples = numpy.zeros((0, AudioBlock.ChannelCount), dtype=numpy.float32)
 
-        if self.sample_count:
-            self.samples = self.samples[:self.sample_count, :]
-            if self.samples.shape[0]<self.sample_count:
-                blank_count = self.sample_count-self.samples.shape[0]
-                blank_data = numpy.zeros((blank_count, self.samples.shape[1]), dtype=numpy.float32)
-                self.samples = numpy.append(self.samples, blank_data, axis=0)
+        if self.preload and audioclip.duration<self.MAX_DURATION_SECONDS:
+            try:
+                self.samples = audioclip.to_soundarray(buffersize=1000).astype(numpy.float32)
+            except IOError as e:
+                self.samples = numpy.zeros((0, AudioBlock.ChannelCount), dtype=numpy.float32)
 
-        AudioFileBlockCache.TotalMemory  += self.samples.nbytes
+            if self.sample_count:
+                self.samples = self.samples[:self.sample_count, :]
+                if self.samples.shape[0]<self.sample_count:
+                    blank_count = self.sample_count-self.samples.shape[0]
+                    blank_data = numpy.zeros((blank_count, self.samples.shape[1]), dtype=numpy.float32)
+                    self.samples = numpy.append(self.samples, blank_data, axis=0)
+
+            AudioFileBlockCache.Files[self.filename] = self
+            AudioFileBlockCache.TotalMemory  += self.samples.nbytes
+            self.clean_memory(exclude=self)
+        else:
+            self.samples = AudioFileClipSamples(self.filename)
         self.samples_loaded = True
-        self.clean_memory(exclude=self)
 
     def get_full_samples(self):
         self.load_samples()
@@ -122,9 +122,10 @@ class AudioFileBlock(AudioSamplesBlock):
         if not self.samples_loaded:
             return
 
-        AudioFileBlockCache.TotalMemory -= self.samples.nbytes
+        if not isinstance(self.samples, AudioFileClipSamples):
+            AudioFileBlockCache.TotalMemory -= self.samples.nbytes
         self.samples = AudioBlock.get_blank_data(1)
-        self.samples_loaded = True
+        self.samples_loaded = False
 
     def get_samples(self, frame_count, start_from=None, use_loop=True, loop=None):
         if self.preload:
@@ -144,6 +145,7 @@ class AudioFileBlock(AudioSamplesBlock):
     def destroy(self):
         self.unload_samples()
         self.remove_from_cache()
+        super(AudioSamplesBlock, self).destroy()
 
     @staticmethod
     def clean_memory(exclude):

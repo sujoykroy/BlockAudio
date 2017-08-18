@@ -13,9 +13,12 @@ class AudioSamplesInstru(AudioInstru):
         if isinstance(note, str):
             note = MusicNote.get_note(note)
         if note.name not in self.notes_samples:
-           factor = note.frequency/self.base_note.frequency
-           samples = SamplesProcessor.speed_up(self.samples, factor)
-           self.notes_samples[note.name] = samples
+            factor = note.frequency/self.base_note.frequency
+            if factor == 1:
+                samples = self.samples.copy()
+            else:
+                samples = SamplesProcessor.speed_up(self.samples, factor)
+            self.notes_samples[note.name] = samples
         else:
             samples = self.notes_samples[note.name]
         return samples
@@ -30,6 +33,3 @@ class AudioSamplesInstru(AudioInstru):
     def refill_block(self, block):
         block.samples = self.get_samples_for(block.music_note)
 
-    def rebuild_note_samples(self):
-        for note_name in self.notes_samples:
-            self.notes_samples[note_name][:, :] = self.get_samples_for(note_name)
