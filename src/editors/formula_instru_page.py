@@ -52,6 +52,8 @@ class FormulaInstruPage(object):
         self.pause_button = Gtk.Button("Pause")
         self.pause_button.connect("clicked", self.pause_button_clicked)
 
+        self.param_widgets = []
+        self.param_grid = Gtk.Grid()
         self.block_viewer = SamplesBlockViewer(owner=self.owner)
         self.block_viewer.set_block(self.audio_block)
 
@@ -78,7 +80,10 @@ class FormulaInstruPage(object):
 
         self.root_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.root_box.pack_start(self.control_box, expand=False, fill=False, padding=0)
+        self.root_box.pack_start(self.param_grid, expand=False, fill=False, padding=0)
         self.root_box.pack_start(self.block_viewer, expand=True, fill=True, padding=5)
+
+        self.build_param_widgets()
 
     def update_tab_name_label(self):
         self.tab_name_label.set_markup("{0}<sup> foi</sup>".format(self.instru.get_name()))
@@ -106,6 +111,55 @@ class FormulaInstruPage(object):
         if self.audio_server:
             self.audio_server.remove_block(self.audio_block)
 
+    def build_param_widgets(self):
+        for param_label, param_widget in self.param_widgets:
+            self.param_grid.remove(param_label)
+            self.param_grid.remove(param_widget)
+
+        for param_data in self.instru.get_param_list():
+            param_name = param_data[0]
+            param_type = param_data[1]
+            if param_type == float:
+                min_value = param_data[2].get("min", -10000.)
+                max_value = param_data[2].get("max", 10000)
+                step_value = param_data[2].get("step", 1)
+
+                spin_button =  Gtk.SpinButton()
+                spin_button.set_digits(3)
+                spin_button.set_range(min_value, max_value)
+                spin_button.set_increments(step_value, step_value)
+                spin_button.connect(
+                    "value-changed",
+                    self.param_spin_button_value_changed,
+                    param_name)
+                spin_button.set_value(self.instru.get_param(param_name))
+                widget = spin_button
+            else:
+                widget = None
+            if widget:
+                widget.param_data = param_data
+                label_name = param_name[0].upper() + param_name[1:]
+                self.param_widgets.append([Gtk.Label(label_name), widget])
+
+        cell_per_column = 2
+        for i in xrange(len(self.param_widgets)):
+            row = i//cell_per_column
+            column = i%cell_per_column
+            self.param_grid.attach(
+                self.param_widgets[i][0], top=row, left=column*2, width=1, height=1)
+            self.param_grid.attach(
+                self.param_widgets[i][1], top=row, left=column*2+1, width=1, height=1)
+        self.param_grid.show()
+
+    def recreate_block_viewer(self):
+        if self.audio_block:
+            self.audio_block.destroy()
+        self.audio_block = self.instru.create_note_block()
+        self.audio_block.set_no_loop()
+        self.block_viewer.set_block(self.audio_block)
+        if self.audio_server:
+            self.audio_server.add_block(self.audio_block)
+
     def name_save_button_clicked(self, widget):
         new_name = self.name_entry.get_text().strip()
         if new_name and new_name != self.instru.get_name():
@@ -113,11 +167,9 @@ class FormulaInstruPage(object):
                 self.update_tab_name_label()
         self.name_entry.set_text(self.instru.get_name())
 
-    def recreate_block_viewer(self):
-        if self.audio_block:
-            self.audio_block.destroy()
-        self.audio_block = self.instru.create_note_block()
-        self.block_viewer.set_block(self.audio_block)
+    def param_spin_button_value_changed(self, widget, param_name):
+        self.instru.set_param(param_name, widget.get_value())
+        self.recreate_block_viewer()
 
     def formula_file_selected(self, widget):
         self.instru.load_formulator(self.filename_select.filename)
@@ -125,6 +177,7 @@ class FormulaInstruPage(object):
             self.audio_server.remove_block(self.audio_block)
             self.play_button.show()
             self.pause_button.hide()
+        self.build_param_widgets()
         self.recreate_block_viewer()
 
     def duration_spin_button_value_changed(self, widget):

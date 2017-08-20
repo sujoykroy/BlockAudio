@@ -215,7 +215,7 @@ class AudioBlock(object):
 
     def destroy(self):
         if self.instru:
-            self.instru.remove_note_block(self)
+            self.instru.remove_block(self)
 
     @staticmethod
     def get_blank_data(sample_count):

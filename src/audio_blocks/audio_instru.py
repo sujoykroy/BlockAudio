@@ -15,10 +15,9 @@ class AudioInstru(object):
         if name is None:
             name = self.new_name()
         self.name = name
-        self.note_blocks = dict()
         self.id_num = AudioInstru.IdSeed
         AudioInstru.IdSeed += 1
-        self.note_blocks = dict()
+        self.blocks = []
 
     def set_name(self, name):
         self.name = name
@@ -38,9 +37,14 @@ class AudioInstru(object):
     def get_description(self):
         return self.name
 
-    def add_note_block(self, block):
-        self.blocks[block.get_id()] = block
+    def add_block(self, block):
+        self.blocks.append(block)
 
-    def remove_note_block(self, block):
-        if block.get_id() in self.note_blocks:
-            del self.note_blocks[block.get_id()]
+    def remove_block(self, block):
+        if block in self.blocks:
+            self.blocks.remove(block)
+
+    def readjust_blocks(self):
+        for block in self.blocks:
+            block.readjust()
+

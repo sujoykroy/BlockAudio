@@ -70,6 +70,8 @@ class AudioFileBlock(AudioSamplesBlock):
         if isinstance(self.samples, AudioFileClipSamples):
             self.samples.set_filename(filename)
         else:
+            self.calculate_duration()
+            self.set_sample_count(self.inclusive_duration)
             AudioFileBlockCache.Files[self.filename] = self
 
     def get_audio_clip(self):
@@ -84,6 +86,9 @@ class AudioFileBlock(AudioSamplesBlock):
         else:
             audioclip = self.get_audio_clip()
             self.inclusive_duration = int(audioclip.duration*AudioBlock.SampleRate)
+
+    def readjust(self):
+        self.set_filename(self.filename)
 
     def load_samples(self):
         if not self.preload:

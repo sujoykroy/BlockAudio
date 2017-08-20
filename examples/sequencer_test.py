@@ -4,6 +4,8 @@ from blockaudio.audio_blocks import AudioFileInstru, AudioFormulaInstru
 from blockaudio import formulators
 
 instru_list = AudioFileInstru.load("/usr/share/hydrogen/data/drumkits/HipHop-2")
+
+instru_list.insert(0, AudioFormulaInstru(filepath="/home/sujoy/Devel/BlockAudio/src/formulators/sine_formulator.py"))
 instru_list1 = AudioFileInstru.load("/home/sujoy/Music/clip1.wav")
 sequencer = AudioSequencer(
     instru_list=instru_list)

@@ -11,14 +11,14 @@ class AudioSamplesBlock(AudioBlock):
         self.set_sample_count(samples.shape[0])
         self.inclusive_duration = self.duration
 
-    def fit_to_samples(self):
+    def readjust(self):
         if self.auto_fit_duration:
             self.set_sample_count(self.samples.shape[0])
         self.inclusive_duration = self.samples.shape[0]
 
     def set_samples(self, samples):
         self.samples = samples
-        self.fit_to_samples()
+        self.readjust()
 
     def get_samples(self, frame_count, start_from=None, use_loop=True, loop=None):
         if self.paused:

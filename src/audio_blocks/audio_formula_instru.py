@@ -7,22 +7,23 @@ import numpy
 import os
 
 class AudioFormulaInstru(AudioInstru):
-    def __init__(self, formulator, base_note="C5"):
+    def __init__(self, formulator=None, base_note="C5", filepath=None):
         AudioInstru.__init__(self)
         self.base_note = MusicNote.get_note(base_note)
         self.duration_time = AudioBlockTime(AudioBlock.SampleRate)
 
         self.formulator_path = None
+        self.notes_samples = dict()
+        self.autogen_other_notes = True
 
         if formulator is None:
             self.formulator = None
             self.customized = True
+            if filepath:
+                self.load_formulator(filepath)
         else:
             self.customized = False
             self.formulator = formulator(self)
-
-        self.notes_samples = dict()
-        self.autogen_other_notes = True
 
     def is_customized(self):
         return self.customized
@@ -34,27 +35,46 @@ class AudioFormulaInstru(AudioInstru):
         self.formula_module = imp.load_source("formula_module", filepath)
         if hasattr(self.formula_module, "Formulator"):
             self.formulator = self.formula_module.Formulator(self)
-        self.readjust_note_blocks()
+        self.readjust_blocks()
 
     def get_param_list(self):
-        if self.formulator and hasattr(self.formulator, "get_param_list"):
-            return self.formulator.get_param_list()
-        return []
+        if self.formulator:
+            if hasattr(self.formulator, "param_list"):
+                return self.formulator.param_list
+        return dict()
 
-    def set_param(self, param_name, param_data):
-        if self.formulator and hasattr(self.formulator, "set_param"):
-            self.formulator.set_param(param_name, param_data)
+    def get_param(self, param_name):
+        if not self.formulator:
+            return None
+        if hasattr(self.formulator, param_name):
+            return getattr(self.formulator, param_name)
+        return None
+
+    def set_param(self, param_name, param_value):
+        if not self.formulator:
+            return
+
+        param_list = self.get_param_list()
+        for param_data in self.get_param_list():
+            if param_data[0] == param_name:
+                param_type = param_data[1]
+                if param_type == float:
+                    param_value = float(param_value)
+                if hasattr(self.formulator, param_name):
+                    setattr(self.formulator, param_name, param_value)
+                self.readjust_blocks()
+                return
 
     def set_duration_value(self, value, beat):
         self.duration_time.set_value(value, beat)
-        self.readjust_note_blocks()
+        self.readjust_blocks()
 
     def set_duration_unit(self, unit, beat):
         self.duration_time.set_unit(unit, beat)
 
     def set_duration(self, duration, beat):
         self.duration_time.set_sample_count(duration, beat)
-        self.readjust_note_blocks()
+        self.readjust_blocks()
 
     def get_sample_rate(self):
         return AudioBlock.SampleRate
@@ -85,12 +105,15 @@ class AudioFormulaInstru(AudioInstru):
         note_block = AudioSamplesBlock(self.get_samples_for(note))
         note_block.set_instru(self)
         note_block.set_music_note(note.name)
+        self.add_block(note_block)
         return note_block
 
-    def readjust_note_blocks(self):
+    def readjust_blocks(self):
         for note_name in self.notes_samples:
             del self.notes_samples[note_name]
             self.notes_samples[note_name] = self.get_samples_for(note_name)
-        for block in self.note_blocks:
+        for block in self.blocks:
             block.set_samples(self.notes_samples[block.music_note])
-            print block.get_duration()
+
+    def refill_block(self, block):
+        block.set_samples(self.get_samples_for(block.music_note))

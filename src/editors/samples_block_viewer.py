@@ -71,6 +71,9 @@ class SamplesBlockViewer(Gtk.Box):
         self.audio_block = audio_samples_block
         self.image_surface = None
         self.image_name = None
+        self.board_zoom = 1.
+        self.board_offset_x = 0
+        self.board_offset_y = 0
         self.redraw()
 
     def redraw(self):

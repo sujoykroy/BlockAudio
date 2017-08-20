@@ -28,7 +28,17 @@ class AudioSamplesInstru(AudioInstru):
         note_block = AudioSamplesBlock(self.get_samples_for(note))
         note_block.set_instru(self)
         note_block.set_music_note(note.name)
+        self.add_block(note_block)
         return note_block
+
+    def readjust_blocks(self):
+        for note_name in self.notes_samples:
+            self.notes_samples[note_name] = self.get_samples_for(note_name)
+        for block in self.blocks:
+            if isinstance(AudioSamplesBlock, block):
+                block.set_samples(self.notes_samples[block.music_note])
+            else:
+                block.readjust()
 
     def refill_block(self, block):
         block.samples = self.get_samples_for(block.music_note)

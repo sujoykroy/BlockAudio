@@ -127,6 +127,10 @@ class TimedGroupPage(object):
         self.child_block_instru_label = Gtk.Label("Instrument")
         self.child_block_block_label = Gtk.Label("Block")
 
+        self.child_block_delete_button = Gtk.Button("Delete")
+        self.child_block_delete_button.connect(
+            "clicked", self.child_block_delete_button_clicked)
+
         self.child_block_edit_box.attach(
                 self.child_block_instru_label, left=5, top=2, width=2, height=1)
         self.child_block_edit_box.attach(
@@ -156,6 +160,8 @@ class TimedGroupPage(object):
         self.child_block_edit_box.attach(
                 self.child_block_duration_unit_combo_box, left=3, top=2, width=1, height=1)
 
+        self.child_block_edit_box.attach(
+                self.child_block_delete_button, left=8, top=1, width=1, height=1)
 
         self.control_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.control_grid = Gtk.Grid()
@@ -230,6 +236,15 @@ class TimedGroupPage(object):
             self.child_block_edit_box.show()
         else:
             self.child_block_edit_box.hide()
+
+    def child_block_delete_button_clicked(self, widget):
+        if not self.selected_child_block_box:
+            return
+        child_block = self.selected_child_block_box.audio_block
+        self.block_box.remove_box(self.selected_child_block_box)
+        self.selected_child_block_box = None
+        self.child_block_edit_box.hide()
+        self.redraw_timed_group_editor()
 
     def name_save_button_clicked(self, widget):
         new_name = self.name_entry.get_text().strip()

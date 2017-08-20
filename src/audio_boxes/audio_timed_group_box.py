@@ -27,6 +27,12 @@ class AudioTimedGroupBox(AudioBlockBox):
             block_box = AudioBlockBox(block, parent_box=self)
             self.add_box(block_box, y=y)
 
+    def remove_box(self, child_box):
+        self.audio_block.remove_block(child_box.audio_block)
+        del self.block_boxes[child_box.get_id()]
+        self.block_zs.remove(child_box.get_id())
+        self.update_size()
+
     def add_box(self, block_box, y=0):
         self.block_boxes[block_box.get_id()] = block_box
         self.update_box_position(block_box, y)
