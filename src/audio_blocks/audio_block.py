@@ -112,6 +112,9 @@ class AudioBlock(object):
     def __eq__(self, other):
         return isinstance(other, AudioBlock) and other.id_num == self.id_num
 
+    def __hash__(self):
+        return hash(("audio_block", self.id_num))
+
     def set_current_pos(self, current_pos):
         self.current_pos = current_pos
 

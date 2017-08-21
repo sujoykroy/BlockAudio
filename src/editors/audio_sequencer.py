@@ -14,7 +14,7 @@ GObject.threads_init()
 
 class AudioSequencer(Gtk.Window):
     def __init__(self, width=800, height=600,
-                instru_list=None, timed_group_list=None, file_block_list=None):
+                instru_list=None, timed_group_list=None):
         Gtk.Window.__init__(self, title="Sequencer", resizable=True)
         self.set_size_request(width, height)
         self.set_events(Gdk.EventMask.POINTER_MOTION_MASK)
@@ -33,8 +33,6 @@ class AudioSequencer(Gtk.Window):
 
         if not instru_list:
             instru_list = []
-        if not file_block_list:
-            file_block_list = []
         if not timed_group_list:
             timed_group = AudioTimedGroup()
             timed_group.set_name("Main")
@@ -42,18 +40,28 @@ class AudioSequencer(Gtk.Window):
 
         self.instru_list = instru_list
         self.timed_group_list = timed_group_list
-        self.file_block_list = file_block_list
 
         self.instru_list_label = Gtk.Label("Instruments")
         self.instru_list_label.set_pattern("___________")
         self.instru_list_label.set_justify(Gtk.Justification.CENTER)
 
+        #instru store
+        self.instru_store = gui_utils.HarchTreeStore(str, object)
+        instru_dict = dict()
+        for instru in self.instru_list:
+            instru_dict[instru.get_name()] = instru
+        for name in sorted(instru_dict.keys()):
+            self.instru_store.add(name, instru_dict[name])
+
+        #intru list view
         self.instru_list_view = Gtk.TreeView()
+        self.instru_list_view.set_model(self.instru_store)
         self.instru_list_view.append_column(
             Gtk.TreeViewColumn("Name", Gtk.CellRendererText(), text=0))
         self.instru_list_view.set_headers_visible(False)
         self.instru_list_view.connect(
             "row-activated", self.instru_list_view_row_activated)
+        self.instru_list_view.set_model(self.instru_store)
 
         self.add_file_instru_button = Gtk.Button("Add File Instrument")
         self.add_file_instru_button.connect("clicked", self.add_file_instru_button_clicked)
@@ -73,27 +81,25 @@ class AudioSequencer(Gtk.Window):
         self.timed_group_list_label.set_pattern("____________")
         self.timed_group_list_label.set_justify(Gtk.Justification.CENTER)
 
+        #timed group store
+        self.timed_group_store = gui_utils.HarchTreeStore(str, object)
+        group_dict = dict()
+        for group in self.timed_group_list:
+            group_dict[group.get_name()] = group
+        for name in sorted(group_dict.keys()):
+            self.timed_group_store.add(name, group_dict[name])
+
+        #timed group list view
         self.timed_group_list_view = Gtk.TreeView()
         self.timed_group_list_view.append_column(
             Gtk.TreeViewColumn("Name", Gtk.CellRendererText(), text=0))
         self.timed_group_list_view.set_headers_visible(False)
         self.timed_group_list_view.connect(
             "row-activated", self.timed_group_list_view_row_activated)
+        self.timed_group_list_view.set_model(self.timed_group_store)
 
         self.add_block_group_button = Gtk.Button("Add Block Group")
         self.add_block_group_button.connect("clicked", self.add_block_group_button_clicked)
-
-        self.file_block_list_label = Gtk.Label("File Blocks")
-        self.file_block_list_label.set_pattern("____________")
-        self.file_block_list_label.set_justify(Gtk.Justification.CENTER)
-
-        self.file_block_list_view = Gtk.TreeView()
-        self.file_block_list_view.append_column(
-            Gtk.TreeViewColumn("Name", Gtk.CellRendererText(), text=0))
-        self.file_block_list_view.set_headers_visible(False)
-
-        self.add_file_block_button = Gtk.Button("Add File Block")
-        self.add_file_block_button.connect("clicked", self.add_file_block_button_clicked)
 
         self.root_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.add(self.root_box)
@@ -129,16 +135,6 @@ class AudioSequencer(Gtk.Window):
         self.blockinstru_box.pack_start(
                 self.add_block_group_button, expand=False, fill=False, padding=0)
 
-        #file block list display
-        self.blockinstru_box.pack_start(
-                self.file_block_list_label, expand=False, fill=False, padding=5)
-        self.file_block_list_view_container = Gtk.ScrolledWindow()
-        self.file_block_list_view_container.add_with_viewport(self.file_block_list_view)
-        self.blockinstru_box.pack_start(
-                self.file_block_list_view_container, expand=True, fill=True, padding=5)
-        self.blockinstru_box.pack_end(
-                self.add_file_block_button, expand=False, fill=False, padding=0)
-
         self.block_instru_notebook = Gtk.Notebook()
         self.block_instru_notebook.set_scrollable(True)
 
@@ -148,10 +144,6 @@ class AudioSequencer(Gtk.Window):
 
         self.root_box.pack_start(self.root_paned, expand=True, fill=True, padding=5)
 
-        self.build_instru_list_view()
-        self.build_timed_group_list_view()
-        self.build_file_block_list_view()
-
         self.show_all()
         self.load_block(self.timed_group_list[0])
 
@@ -160,7 +152,7 @@ class AudioSequencer(Gtk.Window):
             if new_name == tg.get_name():
                 return False
         timed_group.set_name(new_name)
-        self.build_timed_group_list_view()
+        self.timed_group_store.rename_item(timed_group.get_name(), timed_group)
         return True
 
     def rename_instru(self, instru, new_name):
@@ -168,7 +160,7 @@ class AudioSequencer(Gtk.Window):
             if new_name == ins.get_name():
                 return False
         instru.set_name(new_name)
-        self.build_instru_list_view()
+        self.instru_store.rename_item(instru.get_name(), instru)
         return True
 
     def add_page(self, page, name):
@@ -212,6 +204,8 @@ class AudioSequencer(Gtk.Window):
         )
 
     def load_instru(self, instru):
+        if not instru:
+            return
         if isinstance(instru, AudioFileInstru):
             instru_page = FileInstruPage(self, instru)
         elif isinstance(instru, AudioFormulaInstru):
@@ -223,27 +217,19 @@ class AudioSequencer(Gtk.Window):
         if filename:
             instru = AudioFileInstru(filename=filename)
             self.instru_list.append(instru)
-            self.build_instru_list_view()
+            self.instru_store.add(instru.get_name(), instru)
 
     def add_formula_instru_button_clicked(self, widget):
         formulator_class = self.formula_combo_box.get_value()
         instru = AudioFormulaInstru(formulator=formulator_class)
         self.instru_list.append(instru)
-        self.build_instru_list_view()
+        self.instru_store.add(instru.get_name(), instru)
 
     def add_block_group_button_clicked(self, widget):
         timed_group = AudioTimedGroup()
         timed_group.set_duration_unit(AudioBlockTime.TIME_UNIT_BEAT, self.beat)
         timed_group.set_duration_value(1, self.beat)
-        self.timed_group_list.append(timed_group)
-        self.build_timed_group_list_view()
-
-    def add_file_block_button_clicked(self, widget):
-        filename = gui_utils.FileOp.choose_file(self, "open", "audio")
-        if filename:
-            block = AudioFileBlock(filename)
-            self.file_block_list.append(block)
-            self.build_file_block_list_view()
+        self.timed_group_store.add(timed_group.get_name(), timed_group)
 
     def instru_list_view_row_activated(self, tree_view, path, column):
         treeiter = tree_view.get_model().get_iter(path)
@@ -258,36 +244,6 @@ class AudioSequencer(Gtk.Window):
             return
         block = tree_view.get_model().get_value(treeiter, 1)
         self.load_block(block)
-
-    def build_instru_list_view(self):
-        instru_store = Gtk.TreeStore(str, object)
-
-        instru_dict = dict()
-        for instru in self.instru_list:
-            instru_dict[instru.get_name()] = instru
-        for name in sorted(instru_dict.keys()):
-            instru_store.append(None, [name, instru_dict[name]])
-        self.instru_list_view.set_model(instru_store)
-
-    def build_timed_group_list_view(self):
-        group_store = Gtk.TreeStore(str, object)
-
-        group_dict = dict()
-        for group in self.timed_group_list:
-            group_dict[group.get_name()] = group
-        for name in sorted(group_dict.keys()):
-            group_store.append(None, [name, group_dict[name]])
-        self.timed_group_list_view.set_model(group_store)
-
-    def build_file_block_list_view(self):
-        file_block_store = Gtk.TreeStore(str, object)
-
-        file_block_dict = dict()
-        for file_block in self.file_block_list:
-            file_block_dict[file_block.get_name()] = file_block
-        for name in sorted(file_block_dict.keys()):
-            file_block_store.append(None, [name, file_block_dict[name]])
-        self.file_block_list_view.set_model(file_block_store)
 
     def get_selected_instru(self):
         model, tree_iter = self.instru_list_view.get_selection().get_selected()

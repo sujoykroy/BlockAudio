@@ -109,6 +109,8 @@ class AudioFormulaInstru(AudioInstru):
         return note_block
 
     def readjust_blocks(self):
+        if not self.notes_samples:
+            return
         for note_name in self.notes_samples:
             del self.notes_samples[note_name]
             self.notes_samples[note_name] = self.get_samples_for(note_name)
