@@ -57,6 +57,7 @@ class AudioBlockBox(object):
 
     def set_y(self, y):
         self.y = y
+        self.audio_block.set_y(y)
 
     def get_position(self):
         return Point(self.x, self.y)

@@ -101,7 +101,7 @@ class AudioBlock(object):
         self.play_pos = 0
         self.instru = None
         self.lock = threading.RLock()
-
+        self.y = 0
         self.id_num = AudioBlock.IdSeed
         AudioBlock.IdSeed += 1
         self.name = self.new_name()
@@ -129,6 +129,9 @@ class AudioBlock(object):
 
     def set_instru(self, instru):
         self.instru = instru
+
+    def set_y(self, y):
+        self.y = y
 
     def set_note(self, note):
         self.music_note = note

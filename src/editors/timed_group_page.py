@@ -225,12 +225,15 @@ class TimedGroupPage(object):
         if self.selected_child_block_box:
             block = self.selected_child_block_box.audio_block
             self.child_block_note_combo_box.set_value(block.music_note)
+
             self.child_block_duration_unit_combo_box.set_value(block.duration_time.unit)
             self.child_block_duration_spin_button.set_value(block.duration_time.value)
-            self.child_block_start_spin_button.set_value(
-                    self.audio_block.get_block_position_value(block))
+
             self.child_block_start_unit_combo_box.set_value(
                     self.audio_block.get_block_position_unit(block))
+            self.child_block_start_spin_button.set_value(
+                    self.audio_block.get_block_position_value(block))
+
             if block.instru:
                 type_name = "Instrument"
                 edit_name = block.instru.get_name()

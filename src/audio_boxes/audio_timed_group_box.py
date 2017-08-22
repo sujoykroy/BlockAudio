@@ -17,7 +17,7 @@ class AudioTimedGroupBox(AudioBlockBox):
         if should_populate:
             self.audio_block.lock.acquire()
             for block in self.audio_block.blocks:
-                self.add_box(AudioBlockBox(block, parent_box=self))
+                self.add_box(AudioBlockBox(block, parent_box=self), block.y)
             self.audio_block.lock.release()
 
     def add_block(self, block, at, y=0, sample_unit=True):
@@ -33,7 +33,7 @@ class AudioTimedGroupBox(AudioBlockBox):
         self.block_zs.remove(child_box.get_id())
         self.update_size()
 
-    def add_box(self, block_box, y=0):
+    def add_box(self, block_box, y):
         self.block_boxes[block_box.get_id()] = block_box
         self.update_box_position(block_box, y)
         self.block_zs.append(block_box.get_id())
