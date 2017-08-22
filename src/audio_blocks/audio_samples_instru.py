@@ -9,6 +9,11 @@ class AudioSamplesInstru(AudioInstru):
         self.base_note = MusicNote.get_note(base_note)
         self.notes_samples = dict()
 
+    def get_xml_element(self):
+        elm = super(AudioSamplesInstru, self).get_xml_element()
+        elm.attrib["bn"] = self.base_note.name
+        return elm
+
     def get_samples_for(self, note):
         if isinstance(note, str):
             note = MusicNote.get_note(note)

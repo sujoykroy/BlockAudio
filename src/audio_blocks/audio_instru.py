@@ -1,9 +1,11 @@
 import time
+from xml.etree.ElementTree import Element as XmlElement
 
 class AudioInstru(object):
     IdSeed = 0
     NameSeed = 0
     EPOCH_TIME = time.mktime(time.strptime("1 Jan 2017", "%d %b %Y"))
+    TAG_NAME = "instru"
 
     @staticmethod
     def new_name():
@@ -18,6 +20,11 @@ class AudioInstru(object):
         self.id_num = AudioInstru.IdSeed
         AudioInstru.IdSeed += 1
         self.blocks = []
+
+    def get_xml_element(self):
+        elm = XmlElement(self.TAG_NAME)
+        elm.attrib["nm"] = "{0}".format(self.get_name())
+        return elm
 
     def set_name(self, name):
         self.name = name

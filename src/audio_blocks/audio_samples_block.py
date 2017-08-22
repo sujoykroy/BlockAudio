@@ -11,6 +11,14 @@ class AudioSamplesBlock(AudioBlock):
         self.set_sample_count(samples.shape[0])
         self.inclusive_duration = self.duration
 
+    def copy(self):
+        if self.instru:
+            newob = self.instru.create_note_block(self.music_note)
+        else:
+            newob = type(self)(self.samples.copy())
+        self.copy_values_into(newob)
+        return newob
+
     def readjust(self):
         if self.auto_fit_duration:
             self.set_sample_count(self.samples.shape[0])

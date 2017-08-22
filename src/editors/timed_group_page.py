@@ -134,10 +134,15 @@ class TimedGroupPage(object):
         self.child_block_delete_button.connect(
             "clicked", self.child_block_delete_button_clicked)
 
-        self.child_block_edit_box.attach(
-                self.child_block_edit_label, left=5, top=2, width=1, height=1)
-        self.child_block_edit_box.attach(
-                self.child_block_edit_button, left=6, top=2, width=1, height=1)
+        self.child_block_loop_label = Gtk.Label("Loop")
+        self.child_block_loop_combo_box = gui_utils.NameValueComboBox()
+        self.child_block_loop_combo_box.build_and_set_model([
+            ["None", AudioBlock.LOOP_NONE],
+            ["Strech", AudioBlock.LOOP_STRETCH],
+            ["Infinite", AudioBlock.LOOP_INFINITE]
+        ])
+        self.child_block_loop_combo_box.connect(
+            "changed", self.child_block_loop_combo_box_changed)
 
         self.child_block_edit_box.attach(
                 self.child_block_note_label, left=5, top=1, width=1, height=1)
@@ -157,6 +162,16 @@ class TimedGroupPage(object):
                 self.child_block_duration_spin_button, left=2, top=2, width=1, height=1)
         self.child_block_edit_box.attach(
                 self.child_block_duration_unit_combo_box, left=3, top=2, width=1, height=1)
+
+        self.child_block_edit_box.attach(
+                self.child_block_edit_label, left=5, top=2, width=1, height=1)
+        self.child_block_edit_box.attach(
+                self.child_block_edit_button, left=6, top=2, width=1, height=1)
+
+        self.child_block_edit_box.attach(
+                self.child_block_loop_label, left=7, top=2, width=1, height=1)
+        self.child_block_edit_box.attach(
+                self.child_block_loop_combo_box, left=8, top=2, width=1, height=1)
 
         self.child_block_edit_box.attach(
                 self.child_block_delete_button, left=8, top=1, width=1, height=1)
@@ -246,6 +261,8 @@ class TimedGroupPage(object):
                 edit_name = edit_name[:max_len-3] + "..."
             self.child_block_edit_label.set_text(type_name)
             self.child_block_edit_button.set_label(edit_name)
+            self.child_block_loop_combo_box.set_value(block.loop)
+
             self.child_block_edit_box.show()
         else:
             self.child_block_edit_box.hide()
@@ -267,6 +284,12 @@ class TimedGroupPage(object):
         self.selected_child_block_box = None
         self.child_block_edit_box.hide()
         self.redraw_timed_group_editor()
+
+    def child_block_loop_combo_box_changed(self, widget):
+        if not self.selected_child_block_box:
+            return
+        child_block = self.selected_child_block_box.audio_block
+        child_block.set_loop(widget.get_value())
 
     def name_save_button_clicked(self, widget):
         new_name = self.name_entry.get_text().strip()
@@ -403,7 +426,7 @@ class TimedGroupPage(object):
                self.owner.keyboard_state.shift_key_pressed:
                 block = self.owner.get_selected_timed_group()
                 if block and block != self.audio_block:
-                    new_block = block
+                    new_block = block.copy(linked=True)
             elif self.owner.keyboard_state.control_key_pressed:
                 instru = self.owner.get_selected_instru()
                 if instru:
@@ -411,8 +434,7 @@ class TimedGroupPage(object):
 
             if new_block:
                 pos = self.block_box.transform_point(self.mouse_point)
-                self.block_box.add_block(
-                    new_block, at=pos.x, y=pos.y, sample_unit=False)
+                self.block_box.add_block(new_block, pos.x, pos.y, self.owner.beat)
                 if len(self.audio_block.blocks) == 1:
                     self.block_box.set_size(self.tge_rect.width, None)
                 self.redraw_timed_group_editor()
@@ -457,6 +479,7 @@ class TimedGroupPage(object):
                     self.selected_box, self.selected_box_init_position,
                     self.mouse_init_point, self.mouse_point,
                     beat=self.owner.beat)
+                self.show_audio_block_info()
             self.redraw_timed_group_editor()
         elif self.current_pos_selected:
             self.block_box.set_current_position(self.mouse_point)

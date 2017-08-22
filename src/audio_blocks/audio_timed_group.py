@@ -3,29 +3,62 @@ import threading
 import time
 import numpy
 from ..commons import AudioMessage
+from xml.etree.ElementTree import Element as XmlElement
 
 class AudioTimedGroup(AudioBlock):
+    TYPE_NAME = "tgrp"
+
     blank_data = None
     def __init__(self):
         super(AudioTimedGroup, self).__init__()
         self.blocks = []
-        self.blocks_positions = dict()
-
+        self.linked_to = None
+        self.linked_copies = None
         self.lock = threading.RLock()
         if AudioTimedGroup.blank_data is None:
             AudioTimedGroup.blank_data = self.get_blank_data(AudioBlock.FramesPerBuffer)
 
-    def add_block(self, block, at, sample_unit=False):
+    def copy(self, linked=False):
+        newob = type(self)()
+        self.copy_values_into(newob)
+        if linked:
+            if self.linked_copies is None:
+                self.linked_copies = []
+            self.linked_copies.append(newob)
+            newob.linked_to = self
+            newob.blocks = self.blocks
+            newob.lock = self.lock
+        else:
+            for block in self.blocks:
+                newob.blocks.append(block.copy())
+        return newob
+
+    def destroy(self):
+        self.linked_to = None
+        if self.linked_copies:
+            for linked_block in self.linked_copies:
+                linked_block.destroy()
+            del self.linked_copies[:]
+        super(AudioTimedGroup, self).destroy()
+
+    def get_xml_element(self):
+        elm = super(AudioTimedGroup, self).get_xml_element()
+        elm.attrib["tp"] = self.TYPE_NAME
+        for i in xrange(len(self.blocks)):
+            block = self.blocks[i]
+            elm.append(block_elm)
+        return elm
+
+    def add_block(self, block, at, unit, beat):
         ret = True
         self.lock.acquire()
-        if not sample_unit:
-            at = at*AudioBlock.SampleRate
-        at = int(at)
         if block not in self.blocks:
             self.blocks.append(block)
         else:
             ret = False
-        self.blocks_positions[block.get_id()]=AudioBlockTime(at)
+        block.set_owner(self)
+        block.start_time.set_unit(unit, beat)
+        block.start_time.set_value(at, beat)
         self.lock.release()
         self.calculate_duration()
         return ret
@@ -34,8 +67,8 @@ class AudioTimedGroup(AudioBlock):
         self.lock.acquire()
         if block in self.blocks:
             index = self.blocks.index(block)
+            block.set_owner(None)
             del self.blocks[index]
-            del self.blocks_positions[block.get_id()]
         self.lock.release()
         self.calculate_duration()
 
@@ -46,38 +79,35 @@ class AudioTimedGroup(AudioBlock):
         block.set_name(name)
 
     def get_block_position(self, block):
-        block_time = self.blocks_positions.get(block.get_id())
-        return block_time.sample_count
+        return block.start_time.sample_count
 
     def get_block_position_value(self, block):
-        block_time = self.blocks_positions.get(block.get_id())
-        return block_time.value
+        return block.start_time.value
 
     def get_block_position_unit(self, block):
-        block_time = self.blocks_positions.get(block.get_id())
-        return block_time.unit
+        return block.start_time.unit
 
     def set_block_position_value(self, block, value, beat):
         self.lock.acquire()
-        self.blocks_positions[block.get_id()].set_value(value, beat)
+        block.start_time.set_value(value, beat)
         self.lock.release()
         self.calculate_duration()
 
     def set_block_position_unit(self, block, unit, beat):
         self.lock.acquire()
-        self.blocks_positions[block.get_id()].set_unit(unit, beat)
+        block.start_time.set_unit(unit, beat)
         self.lock.release()
         self.calculate_duration()
 
     def set_block_position(self, block, sample_count, beat):
         self.lock.acquire()
-        self.blocks_positions[block.get_id()].set_sample_count(sample_count, beat)
+        block.start_time.set_sample_count(sample_count, beat)
         self.lock.release()
         self.calculate_duration()
 
     def stretch_block_to(self, block, sample_count, beat):
         self.lock.acquire()
-        start_pos = self.blocks_positions[block.get_id()].sample_count
+        start_pos = block.start_time.sample_count
         block.set_duration(sample_count-start_pos, beat)
         self.lock.release()
         self.calculate_duration()
@@ -92,7 +122,7 @@ class AudioTimedGroup(AudioBlock):
             self.lock.acquire()
             if i<len(self.blocks):
                 block = self.blocks[i]
-                block_start_pos = self.blocks_positions[block.get_id()].sample_count
+                block_start_pos = block.start_time.sample_count
             else:
                 block = None
             self.lock.release()
@@ -105,6 +135,10 @@ class AudioTimedGroup(AudioBlock):
                 duration = end_at
         self.inclusive_duration = duration
         super(AudioTimedGroup, self).calculate_duration()
+
+        if self.linked_copies:
+            for linked_block in self.linked_copies:
+                linked_block.inclusive_duration = self.inclusive_duration
 
     def get_samples(self, frame_count, start_from=None, use_loop=True, loop=None):
         if self.paused:
@@ -176,7 +210,7 @@ class AudioTimedGroup(AudioBlock):
             self.lock.acquire()
             if i<len(self.blocks):
                 block = self.blocks[i]
-                block_start_pos = self.blocks_positions[block.get_id()].sample_count
+                block_start_pos = block.start_time.sample_count
             else:
                 block = None
             self.lock.release()

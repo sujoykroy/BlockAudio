@@ -13,6 +13,11 @@ class AudioFileInstru(AudioSamplesInstru):
                     None)
         self.set_name(os.path.basename(filename))
 
+    def get_xml_element(self):
+        elm = super(AudioFileInstru, self).get_xml_element()
+        elm.attrib["f"] = self.filename
+        return elm
+
     def get_base_block(self):
         if self.base_block is None:
             self.base_block = self.get_file_block()

@@ -2,12 +2,19 @@ import numpy
 import time
 import threading
 from ..commons import MidiMessage, AudioMessage
+from xml.etree.ElementTree import Element as XmlElement
 
 class AudioBlockTime(object):
     TIME_UNIT_SAMPLE = 0
     TIME_UNIT_SECONDS = 1
     TIME_UNIT_BEAT = 2
     TIME_UNIT_DIV = 3
+
+
+    BEAT_UNIT_NAMES = ("beat",)
+    DIV_UNIT_NAMES = ("div",)
+    SECONDS_UNIT_NAMES = ("seconds", "sec")
+    SAMPLE_UNIT_NAMES = ("sample", )
 
     @classmethod
     def get_model(cls):
@@ -28,6 +35,11 @@ class AudioBlockTime(object):
         else:
             self.sample_count = None
 
+    def copy(self):
+        newob = AudioBlockTime(self.value, self.unit)
+        newob.sample_count = self.sample_count
+        return newob
+
     def build(self, beat):
         self._build_sample_count(beat)
 
@@ -43,29 +55,46 @@ class AudioBlockTime(object):
         self._build_value(beat)
 
     def set_unit(self, unit, beat):
+        if unit in self.BEAT_UNIT_NAMES:
+            unit = self.TIME_UNIT_BEAT
+        elif unit in self.DIV_UNIT_NAMES:
+            unit = self.TIME_UNIT_DIV
+        elif unit in self.SECONDS_UNIT_NAMES:
+            unit = self.TIME_UNIT_SECONDS
+        elif unit in self.SAMPLE_UNIT_NAMES:
+            unit = self.TIME_UNIT_SAMPLE
         self.unit = unit
         self._build_value(beat)
 
     def _build_value(self, beat):
-        if self.unit == self.TIME_UNIT_BEAT:
+        if self.unit == self.TIME_UNIT_BEAT or \
+                        self.unit in self.BEAT_UNIT_NAMES:
             self.value = self.sample_count*1./beat.get_beat_sample(1)
-        elif self.unit == self.TIME_UNIT_DIV:
+        elif self.unit == self.TIME_UNIT_DIV or \
+                        self.unit in self.DIV_UNIT_NAMES:
             self.value = self.sample_count*1./beat.get_div_sample(1)
-        elif self.unit == self.TIME_UNIT_SECONDS:
+        elif self.unit == self.TIME_UNIT_SECONDS or \
+                        self.unit in self.SECONDS_UNIT_NAMES:
             self.value = self.sample_count*1./beat.sample_rate
         else:
             self.value = self.sample_count
 
     def _build_sample_count(self, beat):
-        if self.unit == self.TIME_UNIT_BEAT:
+        if self.unit == self.TIME_UNIT_BEAT or \
+                        self.unit in self.BEAT_UNIT_NAMES:
             sample_count = beat.get_beat_sample(self.value)
-        elif self.unit == self.TIME_UNIT_DIV:
+        elif self.unit == self.TIME_UNIT_DIV or \
+                        self.unit in self.DIV_UNIT_NAMES:
             sample_count = beat.get_div_sample(self.value)
-        elif self.unit == self.TIME_UNIT_SECONDS:
+        elif self.unit == self.TIME_UNIT_SECONDS or \
+                        self.unit in self.SECONDS_UNIT_NAMES:
             sample_count = self.value*beat.sample_rate
         else:
             sample_count = self.value
         self.sample_count = int(round(sample_count))
+
+    def to_text(self):
+        return "{0}:{1}:{2}".format(self.value, self.unit, self.sample_count)
 
 class AudioBlock(object):
     FramesPerBuffer = 1024
@@ -81,6 +110,8 @@ class AudioBlock(object):
     NameSeed = 0
     _APP_EPOCH_TIME = time.mktime(time.strptime("1 Jan 2017", "%d %b %Y"))
 
+    TAG_NAME = "adblck"
+
     @staticmethod
     def new_name():
         AudioBlock.NameSeed += 1
@@ -90,21 +121,56 @@ class AudioBlock(object):
     def __init__(self):
         self.paused = False
         self.loop = self.LOOP_STRETCH
+
+        self.start_time = AudioBlockTime()
         self.duration_time = AudioBlockTime()
+        self.y = 0
+
         self.duration = 0
         self.inclusive_duration = 0
         self.auto_fit_duration = True
+
         self.current_pos = 0
+        self.play_pos = 0
+
         self.music_note = "C5"
         self.midi_channel = None
         self.midi_velocity = 64
-        self.play_pos = 0
+
         self.instru = None
+        self.owner = None
         self.lock = threading.RLock()
-        self.y = 0
+
         self.id_num = AudioBlock.IdSeed
         AudioBlock.IdSeed += 1
         self.name = self.new_name()
+
+    def copy_values_into(self, newob):
+        newob.loop = self.loop
+        newob.start_time = self.start_time.copy()
+        newob.duration_time = self.duration_time.copy()
+        newob.y = self.y
+        newob.duration = self.duration
+        newob.inclusive_duration = self.inclusive_duration
+        newob.auto_fit_duration = self.auto_fit_duration
+        newob.instru = self.instru
+        return newob
+
+    def get_xml_element(self):
+        elm = XmlElement(self.TAG_NAME)
+        elm.attrib["y"] = "{0}".format(self.y)
+        elm.attrib["nm"] = "{0}".format(self.get_name())
+        elm.attrib["lp"] = "{0}".format(self.loop)
+        elm.attrib["dt"] = self.duration_time.to_text()
+        elm.attrib["st"] = self.start_time.to_text()
+        elm.attrib["afd"] = "{0}".format(int(self.auto_fit_duration))
+        elm.attrib["mn"] = "{0}".format(self.music_note)
+        if self.midi_channel is not None:
+            elm.attrib["mch"] = "{0}".format(self.midi_channel)
+            elm.attrib["mvl"] = "{0}".format(self.midi_velocity)
+        if self.instru:
+            elm.attrib["ins"] = self.insru.get_name()
+        return elm
 
     def build(self, beat):
         self.duration_time.build(beat)
@@ -114,6 +180,9 @@ class AudioBlock(object):
 
     def __hash__(self):
         return hash(("audio_block", self.id_num))
+
+    def set_owner(self, owner):
+        self.owner = owner
 
     def set_current_pos(self, current_pos):
         self.current_pos = current_pos
@@ -132,6 +201,9 @@ class AudioBlock(object):
 
     def set_y(self, y):
         self.y = y
+
+    def set_loop(self, loop):
+        self.loop = loop
 
     def set_note(self, note):
         self.music_note = note
@@ -222,6 +294,8 @@ class AudioBlock(object):
     def destroy(self):
         if self.instru:
             self.instru.remove_block(self)
+        if self.owner:
+            self.owner.remove_block(self)
 
     @staticmethod
     def get_blank_data(sample_count):

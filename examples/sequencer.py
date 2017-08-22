@@ -9,6 +9,7 @@ instru_list.insert(0, AudioFormulaInstru(filepath="/home/sujoy/Devel/BlockAudio/
 instru_list1 = AudioFileInstru.load("/home/sujoy/Music/clip1.wav")
 sequencer = AudioSequencer(
     instru_list=instru_list)
+beat = sequencer.beat
 
 files="""
 /usr/share/hydrogen/data/drumkits/HipHop-2/kick_1.wav
@@ -34,6 +35,7 @@ group = AudioTimedGroup()
 t = 0
 c = 0
 import os
+
 for f in files.split("\n"):
     if not f:
         continue
@@ -41,7 +43,7 @@ for f in files.split("\n"):
     file_block.load_samples()
     #file_block.set_inclusive_duration(sequencer.beat.get_div_sample(1))
 
-    group.add_block(file_block, at=t)
+    group.add_block(file_block, at=t, unit="sec", beat=beat)
     group.set_block_name(file_block, os.path.basename(f))
     t += sequencer.beat.get_div_time(1) # file_block.get_time_duration()
     file_block.loop = None
@@ -66,7 +68,7 @@ group2 = AudioTimedGroup()
 file_instru = AudioFileInstru("/home/sujoy/Music/amsynth-out.wav")
 t = 0
 for nn in ["C5", "C3", "E5", "F5"]:
-    group2.add_block(file_instru.create_note_block(nn), t)
+    group2.add_block(file_instru.create_note_block(nn), t, "sec", beat)
     t += sequencer.beat.get_div_time(1)
 
 group3 = AudioTimedGroup()
@@ -74,7 +76,7 @@ formula_instru = AudioFormulaInstru(formulators.TomTomFormulator)
 formula_instru.set_duration(sequencer.beat.get_div_time(1), sequencer.beat)
 t = 0
 for nn in ["C4", "C5", "E5", "F5"]:
-    group3.add_block(formula_instru.create_note_block(nn), t)
+    group3.add_block(formula_instru.create_note_block(nn), t, "sec", beat)
     t += sequencer.beat.get_div_time(1)
 
 sequencer.load_block(group)
