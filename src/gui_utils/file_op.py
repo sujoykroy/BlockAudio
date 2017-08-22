@@ -4,7 +4,7 @@ from ..audio_blocks import AudioServer, AudioFileBlock
 
 class FileOp(object):
     @staticmethod
-    def choose_file(parent, purpose, file_types=[["Block Audio", "*.block_audio"]], filename=None):
+    def choose_file(parent, purpose, file_types=[["Block Audio", "*.blau"]], filename=None):
         if purpose == "save":
             title = "Save"
             action = Gtk.FileChooserAction.SAVE

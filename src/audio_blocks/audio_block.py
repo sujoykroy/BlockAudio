@@ -159,17 +159,17 @@ class AudioBlock(object):
     def get_xml_element(self):
         elm = XmlElement(self.TAG_NAME)
         elm.attrib["y"] = "{0}".format(self.y)
-        elm.attrib["nm"] = "{0}".format(self.get_name())
-        elm.attrib["lp"] = "{0}".format(self.loop)
-        elm.attrib["dt"] = self.duration_time.to_text()
-        elm.attrib["st"] = self.start_time.to_text()
-        elm.attrib["afd"] = "{0}".format(int(self.auto_fit_duration))
-        elm.attrib["mn"] = "{0}".format(self.music_note)
+        elm.attrib["name"] = "{0}".format(self.get_name())
+        elm.attrib["loop"] = "{0}".format(self.loop)
+        elm.attrib["duration"] = self.duration_time.to_text()
+        elm.attrib["start"] = self.start_time.to_text()
+        elm.attrib["auto_fit"] = "{0}".format(int(self.auto_fit_duration))
+        elm.attrib["note"] = "{0}".format(self.music_note)
         if self.midi_channel is not None:
-            elm.attrib["mch"] = "{0}".format(self.midi_channel)
-            elm.attrib["mvl"] = "{0}".format(self.midi_velocity)
+            elm.attrib["mchannel"] = "{0}".format(self.midi_channel)
+            elm.attrib["mvelocity"] = "{0}".format(self.midi_velocity)
         if self.instru:
-            elm.attrib["ins"] = self.insru.get_name()
+            elm.attrib["instru"] = self.instru.get_name()
         return elm
 
     def build(self, beat):
@@ -296,6 +296,11 @@ class AudioBlock(object):
             self.instru.remove_block(self)
         if self.owner:
             self.owner.remove_block(self)
+
+    def get_instru_set(self):
+        if self.instru:
+            return set([self.instru])
+        return None
 
     @staticmethod
     def get_blank_data(sample_count):

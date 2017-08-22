@@ -5,8 +5,11 @@ from audio_block import AudioBlock, AudioBlockTime
 import imp
 import numpy
 import os
+from xml.etree.ElementTree import Element as XmlElement
 
 class AudioFormulaInstru(AudioInstru):
+    PARAM_TAG_NAME = "param"
+
     def __init__(self, formulator=None, base_note="C5", filepath=None):
         AudioInstru.__init__(self)
         self.base_note = MusicNote.get_note(base_note)
@@ -24,6 +27,23 @@ class AudioFormulaInstru(AudioInstru):
         else:
             self.customized = False
             self.formulator = formulator(self)
+
+    def get_xml_element(self):
+        elm = super(AudioFormulaInstru, self).get_xml_element()
+        if self.formulator_path:
+            elm.attrib["formulator_path"] = self.formulator_path
+            for param_data in self.get_param_list():
+                param_name = param_data[0]
+                param_value = "{0}".format(self.get_param(param_name))
+
+                param_elm = XmlElement(self.PARAM_TAG_NAME)
+                param_elm.attrib["name"] = param_name
+                param_elm.attrib["value"] = param_value
+                elm.append(param_elm)
+        else:
+            elm.attrib["formulator"] = self.formulator.DISPLAY_NAME
+        elm.attrib["autogen"] = "{0}".format(int(self.autogen_other_notes))
+        return elm
 
     def is_customized(self):
         return self.customized

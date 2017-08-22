@@ -23,7 +23,7 @@ class AudioInstru(object):
 
     def get_xml_element(self):
         elm = XmlElement(self.TAG_NAME)
-        elm.attrib["nm"] = "{0}".format(self.get_name())
+        elm.attrib["name"] = "{0}".format(self.get_name())
         return elm
 
     def set_name(self, name):
@@ -39,7 +39,7 @@ class AudioInstru(object):
         return isinstance(other, AudioInstru) and other.id_num == self.id_num
 
     def __hash__(self):
-        return self.id_num
+        return hash(("instru", self.id_num))
 
     def get_description(self):
         return self.name

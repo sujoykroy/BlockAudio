@@ -43,10 +43,13 @@ class AudioTimedGroup(AudioBlock):
 
     def get_xml_element(self):
         elm = super(AudioTimedGroup, self).get_xml_element()
-        elm.attrib["tp"] = self.TYPE_NAME
-        for i in xrange(len(self.blocks)):
-            block = self.blocks[i]
-            elm.append(block_elm)
+        elm.attrib["type"] = self.TYPE_NAME
+        if self.linked_to:
+            elm.attrib["linked_to"] = self.linked_to.get_name()
+        else:
+            for i in xrange(len(self.blocks)):
+                block = self.blocks[i]
+                elm.append(block.get_xml_element())
         return elm
 
     def add_block(self, block, at, unit, beat):
@@ -266,3 +269,14 @@ class AudioTimedGroup(AudioBlock):
         audio_message.block_positions.append([self, start_pos])
         audio_message.samples = samples
         return audio_message
+
+    def get_instru_set(self):
+        if self.linked_to:
+            return None
+        instru_set = set()
+        for block in self.blocks:
+            block_instru_set = block.get_instru_set()
+            if not block_instru_set:
+                continue
+            instru_set = instru_set.union(block_instru_set)
+        return instru_set
