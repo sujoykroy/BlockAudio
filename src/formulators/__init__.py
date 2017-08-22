@@ -1,1 +1,1 @@
-from sine_formulator import SineFormulator
+from tomtom import TomTomFormulator

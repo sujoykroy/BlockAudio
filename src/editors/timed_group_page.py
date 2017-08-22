@@ -6,13 +6,14 @@ from ..commons import MusicNote
 from .. import gui_utils
 
 class TimedGroupPage(object):
-    def __init__(self, owner, audio_block):
+    def __init__(self, owner, audio_block, root_window):
         self.owner = owner
         self.audio_block = audio_block
         self.mouse_point = Point(0., 0.)
         self.mouse_init_point = Point(0., 0.)
         self.audio_server = None
         self.current_pos_selected = False
+        self.root_window = root_window
 
         self.selected_child_block_box = None
         self.selected_box = None
@@ -86,8 +87,12 @@ class TimedGroupPage(object):
         self.child_block_edit_box = Gtk.Grid()
         self.child_block_edit_box.set_column_spacing(2)
 
-        self.child_block_instru_edit_button = Gtk.Button("Instrument")
-        self.child_block_block_edit_button = Gtk.Button("Block")
+        self.child_block_edit_button = Gtk.Button("")
+        self.child_block_edit_button.connect("clicked", self.child_block_edit_button_clicked)
+        self.child_block_edit_label = Gtk.Label("")
+
+        self.child_block_note_label = Gtk.Label("Note")
+        self.child_block_note_label.set_halign(Gtk.Align.END)
 
         self.child_block_note_combo_box = gui_utils.NameValueComboBox()
         self.child_block_note_combo_box.build_and_set_model(MusicNote.get_names())
@@ -124,25 +129,18 @@ class TimedGroupPage(object):
         self.child_block_start_unit_combo_box.connect(
             "changed", self.child_block_start_unit_combo_box_changed)
 
-        self.child_block_instru_label = Gtk.Label("Instrument")
-        self.child_block_block_label = Gtk.Label("Block")
-
         self.child_block_delete_button = Gtk.Button("Delete")
+        self.child_block_delete_button.set_hexpand(True)
         self.child_block_delete_button.connect(
             "clicked", self.child_block_delete_button_clicked)
 
         self.child_block_edit_box.attach(
-                self.child_block_instru_label, left=5, top=2, width=2, height=1)
+                self.child_block_edit_label, left=5, top=2, width=1, height=1)
         self.child_block_edit_box.attach(
-                self.child_block_block_label, left=5, top=2, width=2, height=1)
+                self.child_block_edit_button, left=6, top=2, width=1, height=1)
 
         self.child_block_edit_box.attach(
-                self.child_block_instru_edit_button, left=7, top=2, width=1, height=1)
-        self.child_block_edit_box.attach(
-                self.child_block_block_edit_button, left=7, top=2, width=1, height=1)
-
-        self.child_block_edit_box.attach(
-                Gtk.Label("Note"), left=5, top=1, width=1, height=1)
+                self.child_block_note_label, left=5, top=1, width=1, height=1)
         self.child_block_edit_box.attach(
                 self.child_block_note_combo_box, left=6, top=1, width=1, height=1)
 
@@ -233,6 +231,18 @@ class TimedGroupPage(object):
                     self.audio_block.get_block_position_value(block))
             self.child_block_start_unit_combo_box.set_value(
                     self.audio_block.get_block_position_unit(block))
+            if block.instru:
+                type_name = "Instrument"
+                edit_name = block.instru.get_name()
+            else:
+                type_name = "Block"
+                edit_name = block.get_name()
+
+            max_len = 10
+            if len(edit_name)>max_len:
+                edit_name = edit_name[:max_len-3] + "..."
+            self.child_block_edit_label.set_text(type_name)
+            self.child_block_edit_button.set_label(edit_name)
             self.child_block_edit_box.show()
         else:
             self.child_block_edit_box.hide()
@@ -240,6 +250,15 @@ class TimedGroupPage(object):
     def child_block_delete_button_clicked(self, widget):
         if not self.selected_child_block_box:
             return
+        yes_no_dialog = gui_utils.YesNoDialog(
+                self.root_window,
+                "Delete Block",
+                "Are you sure to delete selected block from this parent block")
+        if yes_no_dialog.run() != Gtk.ResponseType.YES:
+            yes_no_dialog.destroy()
+            return
+        yes_no_dialog.destroy()
+
         child_block = self.selected_child_block_box.audio_block
         self.block_box.remove_box(self.selected_child_block_box)
         self.selected_child_block_box = None
@@ -265,6 +284,15 @@ class TimedGroupPage(object):
         self.audio_block.set_duration_unit(widget.get_value(), self.owner.beat)
         self.duration_spin_button.set_value(self.audio_block.duration_time.value)
 
+    def child_block_edit_button_clicked(self, widget):
+        if not self.selected_child_block_box:
+            return
+        child_block = self.selected_child_block_box.audio_block
+        if child_block.instru:
+            self.owner.load_instru(child_block.instru)
+        else:
+            self.owner.load_block(child_block)
+
     def child_block_duration_spin_button_value_changed(self, widget):
         if not self.selected_child_block_box:
             return
@@ -285,7 +313,8 @@ class TimedGroupPage(object):
         if not self.selected_child_block_box:
             return
         child_block = self.selected_child_block_box.audio_block
-        self.audio_block.set_block_position_value(child_block, widget.get_value(), self.owner.beat)
+        self.audio_block.set_block_position_value(
+            child_block, widget.get_value(), self.owner.beat)
         self.selected_child_block_box.update_size()
         self.block_box.update_size()
         self.block_box.update_box_position(self.selected_child_block_box)
@@ -295,7 +324,10 @@ class TimedGroupPage(object):
         if not self.selected_child_block_box:
             return
         child_block = self.selected_child_block_box.audio_block
-        self.audio_block.set_block_position_unit(child_block, widget.get_value(), self.owner.beat)
+        self.audio_block.set_block_position_unit(
+            child_block, widget.get_value(), self.owner.beat)
+        self.child_block_start_spin_button.set_value(
+            self.audio_block.get_block_position_value(child_block))
 
     def child_block_note_combo_box_changed(self, widget):
         if self.selected_child_block_box:
@@ -342,7 +374,8 @@ class TimedGroupPage(object):
             return
         self.block_box.show_div_marks(ctx, self.owner.beat, self.tge_rect)
 
-        rect = self.block_box.get_rect(Point(0,0), Point(self.tge_rect.width, self.tge_rect.height))
+        rect = self.block_box.get_rect(
+            Point(0,0), Point(self.tge_rect.width, self.tge_rect.height))
         self.block_box.draw(ctx, rect, self.selected_child_block_box)
 
         self.block_box.show_beat_marks(ctx, self.owner.beat, self.tge_rect)

@@ -2,7 +2,9 @@ import numpy
 import math
 import scipy.interpolate
 
-class SineFormulator(object):
+class TomTomFormulator(object):
+    DISPLAY_NAME = "Tom-Tom"
+
     def __init__(self, instru):
         self.instru = instru
         self.amplitude = 1.
@@ -27,4 +29,4 @@ class SineFormulator(object):
         samples = numpy.clip(samples, -1, 1)
         return samples
 
-Formulator = SineFormulator
+Formulator = TomTomFormulator

@@ -1,7 +1,7 @@
 from gi.repository import Gtk, Gdk
 from ..audio_boxes import *
 from ..audio_blocks import *
-from ..formulators import *
+from .. import formulators
 from ..commons import Point, Beat, KeyboardState, Rect
 from ..commons import MusicNote
 from .. import gui_utils
@@ -69,13 +69,16 @@ class AudioSequencer(Gtk.Window):
         self.formula_list_label = Gtk.Label("Formulators")
         self.formula_list_label.set_pattern("___________")
         self.formula_combo_box = gui_utils.NameValueComboBox()
-        self.formula_combo_box.build_and_set_model([
-            ["Sine", SineFormulator],
-            ["Customized", None]
-        ])
         self.formula_combo_box.set_value(None)
         self.add_formula_instru_button = Gtk.Button("Add Formula Instrument")
         self.add_formula_instru_button.connect("clicked", self.add_formula_instru_button_clicked)
+
+        formulator_list = [formulators.TomTomFormulator]
+        for i in xrange(len(formulator_list)):
+            formulator = formulator_list[i]
+            formulator_list[i] = [formulator.DISPLAY_NAME, formulator]
+        formulator_list.append(["Customized", None])
+        self.formula_combo_box.build_and_set_model(formulator_list)
 
         self.timed_group_list_label = Gtk.Label("Block Groups")
         self.timed_group_list_label.set_pattern("____________")
@@ -199,7 +202,7 @@ class AudioSequencer(Gtk.Window):
 
     def load_block(self, audio_block):
         self.add_page(
-            TimedGroupPage(self, audio_block),
+            TimedGroupPage(self, audio_block, self),
             audio_block.get_name()
         )
 
@@ -266,4 +269,7 @@ class AudioSequencer(Gtk.Window):
     def quit(self, wiget, event):
         AudioServer.close_all()
         Gtk.main_quit()
+
+    def start(self):
+        Gtk.main()
 
