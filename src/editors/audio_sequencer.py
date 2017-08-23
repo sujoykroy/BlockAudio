@@ -41,7 +41,7 @@ class AudioSequencer(Gtk.Window):
         if not timed_group_list:
             timed_group = AudioTimedGroup()
             timed_group.set_name("Main")
-            timed_group_list = [timed_group]
+            timed_group_list = []
 
         self.instru_list = instru_list
         self.timed_group_list = timed_group_list
@@ -177,7 +177,7 @@ class AudioSequencer(Gtk.Window):
 
         self.update_title()
         self.show_all()
-        self.load_block(self.timed_group_list[0])
+        #self.load_block(self.timed_group_list[0])
 
     def rename_timed_group(self, timed_group, new_name):
         for tg in self.timed_group_list:
@@ -265,6 +265,81 @@ class AudioSequencer(Gtk.Window):
         if backup_file:
             os.remove(backup_file)
 
+    def load_file(self, filename):
+        try:
+            tree = ET.parse(filename)
+        except IOError as e:
+            return
+        except ET.ParseError as e:
+            return
+        root_elm = tree.getroot()
+        app = root_elm.find("app")
+        if app is None or app.attrib.get("name", None) != settings.APP_NAME: return False
+
+        loaded_instrus = dict()
+        for instru_elm in root_elm.findall(AudioInstru.TAG_NAME):
+            instru_type = instru_elm.get("type")
+            if instru_type == AudioFileInstru.TYPE_NAME:
+                instru = AudioFileInstru.create_from_xml(instru_elm)
+            elif instru_type == AudioFormulaInstru.TYPE_NAME:
+                instru = AudioFormulaInstru.create_from_xml(instru_elm)
+            else:
+                continue
+            self.append_instru(instru)
+            loaded_instrus[instru.get_name()] = instru
+
+        loaded_blocks = dict()
+        for block_elm in root_elm.findall(AudioBlock.TAG_NAME):
+            block = self.load_block_from_xml(block_elm, root_elm, loaded_blocks, loaded_instrus)
+            self.timed_group_list.append(block)
+            self.timed_group_store.add(block.get_name(), block)
+
+    def load_block_by_name(self, block_name, root_elm, loaded_blocks, loaded_instrus):
+        if block_name in loaded_blocks:
+            return loaded_blocks[block_name]
+        for block_elm in root_elm.findall(AudioBlock.TAG_NAME):
+            if block_name == block_elm.get("name"):
+                return self.load_block_from_xml(
+                    block_elm, root_elm, loaded_blocks, loaded_instrus)
+        return None
+
+    def load_block_from_xml(self, block_elm, root_elm, loaded_blocks, loaded_instrus):
+        block_type = block_elm.get("type")
+        block_name = block_elm.get("name")
+
+        if block_name in loaded_blocks:
+            return loaded_blocks[block_name]
+
+        block = None
+        if block_type == AudioTimedGroup.TYPE_NAME:
+            linked_to = block_elm.get("linked_to")
+            blocks = []
+            if linked_to:
+                linked_to = self.load_block_by_name(
+                        linked_to, root_elm, loaded_blocks, loaded_instrus)
+            else:
+                for child_block_elm in block_elm.findall(AudioBlock.TAG_NAME):
+                    child_block = self.load_block_from_xml(
+                        child_block_elm, root_elm, loaded_blocks, loaded_instrus)
+                    if not child_block:
+                        continue
+                    blocks.append(child_block)
+            block = AudioTimedGroup.create_from_xml(block_elm, blocks, linked_to)
+        elif block_type == AudioSamplesBlock.TYPE_NAME:
+            instru_name = block_elm.get("instru")
+            if not instru_name:
+                return None
+            instru = loaded_instrus.get(instru_name)
+            if not instru:
+                return None
+            block = AudioSamplesBlock.create_from_xml(block_elm, instru)
+        loaded_blocks[block.get_name()] = block
+        return block
+
+    def append_instru(self, instru):
+        self.instru_list.append(instru)
+        self.instru_store.add(instru.get_name(), instru)
+
     def notebook_tab_close_button_clicked(self, widget, page):
         page.cleanup()
         self.block_instru_notebook.remove(page.get_widget())
@@ -295,24 +370,20 @@ class AudioSequencer(Gtk.Window):
         filename = gui_utils.FileOp.choose_file(self, "open")
         if not filename:
             return
-        self.filename = filename
-        try:
-            tree = ET.parse(self.filename)
-        except IOError as e:
-            return
-        except ET.ParseError as e:
-            return
-        root = tree.getroot()
-        app = root.find("app")
-        if app is None or app.attrib.get("name", None) != settings.APP_NAME: return False
-
-        self.update_title()
+        if self.filename:
+            win = AudioSequencer()
+            win.show()
+        else:
+            win = self
+        win.filename = filename
+        win.load_file(filename)
+        win.update_title()
 
     def save_file_button_clicked(self, widget):
         if not self.filename:
             filename = gui_utils.FileOp.choose_file(self, "save")
             if filename and not os.path.splitext(filename)[1]:
-                filename = filename + ".blau"
+                filename = filename + settings.FILE_EXT
             self.filename = filename
         if not self.filename:
             return
@@ -324,7 +395,7 @@ class AudioSequencer(Gtk.Window):
         if not filename:
             return
         if not os.path.splitext(self.filename)[1]:
-            filename = filename + ".blau"
+            filename = filename + settings.FILE_EXT
         self.filename = filename
         self.save_file(self.filename)
         self.update_title()
@@ -333,8 +404,8 @@ class AudioSequencer(Gtk.Window):
         filename = gui_utils.FileOp.choose_file(self, "open", "audio")
         if filename:
             instru = AudioFileInstru(filename=filename)
-            self.instru_list.append(instru)
-            self.instru_store.add(instru.get_name(), instru)
+            self.append_instru(instru)
+
 
     def add_formula_instru_button_clicked(self, widget):
         formulator_class = self.formula_combo_box.get_value()

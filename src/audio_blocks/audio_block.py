@@ -96,6 +96,13 @@ class AudioBlockTime(object):
     def to_text(self):
         return "{0}:{1}:{2}".format(self.value, self.unit, self.sample_count)
 
+    @classmethod
+    def from_text(cls, text):
+        arr = text.split(":")
+        newob =cls(float(arr[0]), int(arr[1]))
+        newob.sample_count = int(arr[2])
+        return newob
+
 class AudioBlock(object):
     FramesPerBuffer = 1024
     SampleRate = 44100.
@@ -111,6 +118,7 @@ class AudioBlock(object):
     _APP_EPOCH_TIME = time.mktime(time.strptime("1 Jan 2017", "%d %b %Y"))
 
     TAG_NAME = "adblck"
+    TYPE_NAME = ""
 
     @staticmethod
     def new_name():
@@ -159,6 +167,7 @@ class AudioBlock(object):
     def get_xml_element(self):
         elm = XmlElement(self.TAG_NAME)
         elm.attrib["y"] = "{0}".format(self.y)
+        elm.attrib["type"] = self.TYPE_NAME
         elm.attrib["name"] = "{0}".format(self.get_name())
         elm.attrib["loop"] = "{0}".format(self.loop)
         elm.attrib["duration"] = self.duration_time.to_text()
@@ -171,6 +180,17 @@ class AudioBlock(object):
         if self.instru:
             elm.attrib["instru"] = self.instru.get_name()
         return elm
+
+    def load_from_xml(self, elm):
+        self.y = float(elm.attrib.get("y"))
+        self.name = elm.attrib.get("name", self.name)
+        self.loop = int(elm.attrib.get("loop"))
+        self.duration_time = AudioBlockTime.from_text(elm.attrib.get("duration"))
+        self.start_time = AudioBlockTime.from_text(elm.attrib.get("start"))
+        self.auto_fit_duration = bool(int(elm.attrib.get("auto_fit")))
+        if elm.attrib.get("mchannel"):
+            self.midi_channel = int(elm.attrib.get("mchannel"))
+            self.midi_velocity = int(elm.attrib.get("mvelocity"))
 
     def build(self, beat):
         self.duration_time.build(beat)

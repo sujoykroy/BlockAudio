@@ -33,6 +33,18 @@ class AudioTimedGroup(AudioBlock):
                 newob.blocks.append(block.copy())
         return newob
 
+    @classmethod
+    def create_from_xml(cls, elm, blocks, linked_to):
+        newob = cls()
+        newob.load_from_xml(elm)
+        newob.linked_to = linked_to
+        if linked_to:
+            if linked_to.linked_copies is None:
+                linked_to.linked_copies = []
+            linked_to.linked_copies.append(newob)
+        newob.blocks.extend(blocks)
+        return newob
+
     def destroy(self):
         self.linked_to = None
         if self.linked_copies:
@@ -65,6 +77,11 @@ class AudioTimedGroup(AudioBlock):
         self.lock.release()
         self.calculate_duration()
         return ret
+
+    def add_block_direct(self, block):
+        if block not in self.blocks:
+            self.blocks.append(block)
+            block.set_owner(self)
 
     def remove_block(self, block):
         self.lock.acquire()

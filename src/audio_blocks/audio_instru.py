@@ -6,6 +6,7 @@ class AudioInstru(object):
     NameSeed = 0
     EPOCH_TIME = time.mktime(time.strptime("1 Jan 2017", "%d %b %Y"))
     TAG_NAME = "instru"
+    TYPE_NAME = ""
 
     @staticmethod
     def new_name():
@@ -23,8 +24,12 @@ class AudioInstru(object):
 
     def get_xml_element(self):
         elm = XmlElement(self.TAG_NAME)
+        elm.attrib["type"] = self.TYPE_NAME
         elm.attrib["name"] = "{0}".format(self.get_name())
         return elm
+
+    def load_from_xml(self, elm):
+        self.set_name(elm.attrib.get("name"))
 
     def set_name(self, name):
         self.name = name

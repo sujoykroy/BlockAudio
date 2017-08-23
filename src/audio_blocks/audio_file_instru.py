@@ -4,6 +4,8 @@ import moviepy.editor as moviepy_editor
 import os
 
 class AudioFileInstru(AudioSamplesInstru):
+    TYPE_NAME = "file"
+
     def __init__(self, filename, sample_count=None):
         self.filename = filename
         self.sample_count = sample_count
@@ -17,6 +19,15 @@ class AudioFileInstru(AudioSamplesInstru):
         elm = super(AudioFileInstru, self).get_xml_element()
         elm.attrib["filename"] = self.filename
         return elm
+
+    @classmethod
+    def create_from_xml(cls, elm):
+        filename = elm.attrib.get("filename")
+        if filename:
+            newob = cls(filename)
+            newob.load_from_xml(elm)
+            return newob
+        return None
 
     def get_base_block(self):
         if self.base_block is None:

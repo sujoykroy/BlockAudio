@@ -5,6 +5,8 @@ import moviepy.editor as movie_editor
 import scipy.io.wavfile
 
 class AudioSamplesBlock(AudioBlock):
+    TYPE_NAME = "samples"
+
     def __init__(self, samples):
         super(AudioSamplesBlock, self).__init__()
         self.samples = samples
@@ -17,6 +19,13 @@ class AudioSamplesBlock(AudioBlock):
         else:
             newob = type(self)(self.samples.copy())
         self.copy_values_into(newob)
+        return newob
+
+    @classmethod
+    def create_from_xml(cls, elm, instru):
+        music_note = elm.get("note")
+        newob = instru.create_note_block(music_note)
+        newob.load_from_xml(elm)
         return newob
 
     def readjust(self):

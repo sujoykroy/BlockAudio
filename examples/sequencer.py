@@ -7,6 +7,7 @@ instru_list = AudioFileInstru.load("/usr/share/hydrogen/data/drumkits/")
 
 instru_list.insert(0, AudioFormulaInstru(filepath="/home/sujoy/Devel/BlockAudio/src/formulators/tomtom.py"))
 instru_list1 = AudioFileInstru.load("/home/sujoy/Music/clip1.wav")
+instru_list = None
 sequencer = AudioSequencer(
     instru_list=instru_list)
 beat = sequencer.beat
@@ -79,5 +80,5 @@ for nn in ["C4", "C5", "E5", "F5"]:
     group3.add_block(formula_instru.create_note_block(nn), t, "sec", beat)
     t += sequencer.beat.get_div_time(1)
 
-sequencer.load_block(group)
+#sequencer.load_block(group)
 sequencer.start()

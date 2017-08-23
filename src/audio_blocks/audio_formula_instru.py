@@ -6,8 +6,10 @@ import imp
 import numpy
 import os
 from xml.etree.ElementTree import Element as XmlElement
+from .. import formulators
 
 class AudioFormulaInstru(AudioInstru):
+    TYPE_NAME = "formula"
     PARAM_TAG_NAME = "param"
 
     def __init__(self, formulator=None, base_note="C5", filepath=None):
@@ -43,7 +45,32 @@ class AudioFormulaInstru(AudioInstru):
         else:
             elm.attrib["formulator"] = self.formulator.DISPLAY_NAME
         elm.attrib["autogen"] = "{0}".format(int(self.autogen_other_notes))
+        elm.attrib["base_note"] = self.base_note.name
         return elm
+
+    @classmethod
+    def create_from_xml(cls, elm):
+        formulator_path = elm.attrib.get("formulator_path")
+        formulator = elm.attrib.get("formulator")
+        formulator = formulators.Items.get(formulator)
+        base_note = elm.attrib.get("base_note", "C5")
+        newob = cls(formulator, base_note, formulator_path)
+        newob.load_from_xml(elm)
+        if formulator_path:
+            param_list = newob.get_param_list()
+            for param_elm in elm.findall(cls.PARAM_TAG_NAME):
+                param_name = param_elm.attrib.get("name")
+                param_value = param_elm.attrib.get("value")
+
+                for param_data in param_list:
+                    if param_name != param_data[0]:
+                        continue
+                    param_type = param_data[1]
+                    if param_type == float:
+                        param_value = float(param_value)
+                    break
+                newob.set_param(param_name, param_value)
+        return newob
 
     def is_customized(self):
         return self.customized
