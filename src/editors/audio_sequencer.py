@@ -19,7 +19,7 @@ GObject.threads_init()
 
 class AudioSequencer(Gtk.Window):
     def __init__(self, width=800, height=600,
-                instru_list=None, timed_group_list=None):
+                instru_list=None, timed_group_list=None, window_list=None):
         Gtk.Window.__init__(self, title="Sequencer", resizable=True)
         self.set_size_request(width, height)
         self.set_events(Gdk.EventMask.POINTER_MOTION_MASK)
@@ -42,6 +42,10 @@ class AudioSequencer(Gtk.Window):
             timed_group = AudioTimedGroup()
             timed_group.set_name("Main")
             timed_group_list = []
+
+        if window_list is None:
+            window_list = []
+        self.window_list = window_list
 
         self.instru_list = instru_list
         self.timed_group_list = timed_group_list
@@ -351,13 +355,13 @@ class AudioSequencer(Gtk.Window):
             if page.instru.get_id() in self.opened_instrus:
                 del self.opened_instrus[page.instru.get_id()]
 
-    def load_block(self, audio_block):
+    def show_block(self, audio_block):
         self.add_page(
             TimedGroupPage(self, audio_block, self),
             audio_block.get_name()
         )
 
-    def load_instru(self, instru):
+    def show_instru(self, instru):
         if not instru:
             return
         if isinstance(instru, AudioFileInstru):
@@ -371,8 +375,8 @@ class AudioSequencer(Gtk.Window):
         if not filename:
             return
         if self.filename:
-            win = AudioSequencer()
-            win.show()
+            win = AudioSequencer(window_list=self.window_list)
+            win.start()
         else:
             win = self
         win.filename = filename
@@ -425,14 +429,14 @@ class AudioSequencer(Gtk.Window):
         if not treeiter:
             return
         instru = tree_view.get_model().get_value(treeiter, 1)
-        self.load_instru(instru)
+        self.show_instru(instru)
 
     def timed_group_list_view_row_activated(self, tree_view, path, column):
         treeiter = tree_view.get_model().get_iter(path)
         if not treeiter:
             return
         block = tree_view.get_model().get_value(treeiter, 1)
-        self.load_block(block)
+        self.show_block(block)
 
     def get_selected_instru(self):
         model, tree_iter = self.instru_list_view.get_selection().get_selected()
@@ -453,9 +457,13 @@ class AudioSequencer(Gtk.Window):
         self.keyboard_state.set_keypress(event.keyval, pressed=False)
 
     def quit(self, wiget, event):
-        AudioServer.close_all()
-        Gtk.main_quit()
+        self.window_list.remove(self)
+        if not self.window_list:
+            AudioServer.close_all()
+            Gtk.main_quit()
 
     def start(self):
-        Gtk.main()
+        self.window_list.append(self)
+        if len(self.window_list) == 1:
+            Gtk.main()
 

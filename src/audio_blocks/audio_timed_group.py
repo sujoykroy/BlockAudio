@@ -42,7 +42,13 @@ class AudioTimedGroup(AudioBlock):
             if linked_to.linked_copies is None:
                 linked_to.linked_copies = []
             linked_to.linked_copies.append(newob)
-        newob.blocks.extend(blocks)
+            newob.inclusive_duration = linked_to.inclusive_duration
+            newob.blocks = linked_to.blocks
+        else:
+            newob.blocks.extend(blocks)
+            for block in blocks:
+                block.set_owner(newob)
+            newob.calculate_duration()
         return newob
 
     def destroy(self):

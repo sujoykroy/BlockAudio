@@ -254,7 +254,7 @@ class TimedGroupPage(object):
                 edit_name = block.instru.get_name()
             else:
                 type_name = "Block"
-                edit_name = block.get_name()
+                edit_name = block.linked_to.get_name()
 
             max_len = 10
             if len(edit_name)>max_len:
@@ -317,7 +317,7 @@ class TimedGroupPage(object):
         if child_block.instru:
             self.owner.load_instru(child_block.instru)
         else:
-            self.owner.load_block(child_block)
+            self.owner.show_block(child_block.linked_to)
 
     def child_block_duration_spin_button_value_changed(self, widget):
         if not self.selected_child_block_box:

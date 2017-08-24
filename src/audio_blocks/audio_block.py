@@ -188,6 +188,7 @@ class AudioBlock(object):
         self.duration_time = AudioBlockTime.from_text(elm.attrib.get("duration"))
         self.start_time = AudioBlockTime.from_text(elm.attrib.get("start"))
         self.auto_fit_duration = bool(int(elm.attrib.get("auto_fit")))
+        self.duration = self.duration_time.sample_count
         if elm.attrib.get("mchannel"):
             self.midi_channel = int(elm.attrib.get("mchannel"))
             self.midi_velocity = int(elm.attrib.get("mvelocity"))
