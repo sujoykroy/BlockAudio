@@ -9,6 +9,7 @@ from ..audio_blocks import AudioServer, AudioBlockTime
 from ..audio_boxes import AudioBlockBox
 import time
 from samples_block_viewer import SamplesBlockViewer
+from piano_keypad import PianoKeypad
 
 class FormulaInstruPage(object):
     CurveColor = Color.parse("FFF422")
@@ -46,6 +47,9 @@ class FormulaInstruPage(object):
         self.duration_unit_combo_box.connect(
             "changed", self.duration_unit_combo_box_changed)
 
+        self.keypad_button = Gtk.Button("Keypad")
+        self.keypad_button.connect("clicked", self.keypad_button_clicked)
+
         #play/pause
         self.play_button = Gtk.Button("Play")
         self.play_button.connect("clicked", self.play_button_clicked)
@@ -67,6 +71,7 @@ class FormulaInstruPage(object):
         self.info_grid.attach(self.duration_label, left=0, top=1, width=1, height=1)
         self.info_grid.attach(self.duration_spin_button, left=1, top=1, width=1, height=1)
         self.info_grid.attach(self.duration_unit_combo_box, left=2, top=1, width=1, height=1)
+        self.info_grid.attach(self.keypad_button, left=3, top=0, width=1, height=1)
 
         self.play_button.props.valign = Gtk.Align.START
         self.pause_button.props.valign = Gtk.Align.START
@@ -159,6 +164,10 @@ class FormulaInstruPage(object):
         self.block_viewer.set_block(self.audio_block)
         if self.audio_server:
             self.audio_server.add_block(self.audio_block)
+
+    def keypad_button_clicked(self, widget):
+        self.piano_keypad = PianoKeypad(owner=self.owner)
+        self.piano_keypad.set_instru(self.instru)
 
     def name_save_button_clicked(self, widget):
         new_name = self.name_entry.get_text().strip()

@@ -5,10 +5,12 @@ from audio_samples_block import AudioSamplesBlock
 from ..commons import AudioMessage
 import scipy.interpolate
 import numpy
+import time
 
 class AudioKeypadBlock(AudioSamplesBlock):
-    def __init__(self, samples):
+    def __init__(self, samples, note):
         super(AudioKeypadBlock, self).__init__(samples)
+        self.music_note = note
         self.loop = None
 
     def is_stopped(self):
@@ -17,7 +19,6 @@ class AudioKeypadBlock(AudioSamplesBlock):
     def end_smooth(self):
         if self.is_stopped():
             return
-
 
         start_pos = self.current_pos-20
         if start_pos<0:
@@ -32,7 +33,8 @@ class AudioKeypadBlock(AudioSamplesBlock):
         if len(self.samples.shape)>1:
             env = numpy.repeat(env, self.samples.shape[1]).reshape(-1, self.samples.shape[1])
 
-        self.samples[start_pos:start_pos+seg, :] = self.samples[start_pos:start_pos+seg, :].copy()*env
+        self.samples[start_pos:start_pos+seg, :] = \
+                    self.samples[start_pos:start_pos+seg, :].copy()*env
         self.samples[start_pos+seg:, :] = 0
         self.duration = start_pos+seg
         self.inclusive_duration = self.duration
@@ -42,10 +44,22 @@ class AudioKeypadGroup(AudioGroup):
     def __init__(self):
         super(AudioKeypadGroup, self).__init__()
         self.block_loop = None
+        self.history = dict()
+        self.record = False
 
-    def add_samples(self, samples):
-        block = AudioKeypadBlock(samples.copy())
+    def set_record(self, value):
+        self.record = value
+        if not value:
+            old_values = list(self.history.values())
+            self.history.clear()
+            return old_values
+        return None
+
+    def add_samples(self, samples, note):
+        block = AudioKeypadBlock(samples.copy(), note)
         self.add_block(block)
+        if self.record:
+            self.history[block.get_id()] = [block.music_note, time.time(), None]
         return block
 
     def get_samples(self, frame_count, loop=None):
@@ -67,6 +81,9 @@ class AudioKeypadGroup(AudioGroup):
 
             self.lock.acquire()
             if block.is_stopped():
+                if self.record:
+                    self.history[block.get_id()][2] = time.time()
+                block.destroy()
                 del self.blocks[i]
             self.lock.release()
 

@@ -478,6 +478,9 @@ class AudioSequencer(Gtk.Window):
         timed_group = AudioTimedGroup()
         timed_group.set_duration_unit(AudioBlockTime.TIME_UNIT_BEAT, self.beat)
         timed_group.set_duration_value(1, self.beat)
+        self.append_timed_group(timed_group)
+
+    def append_timed_group(self, timed_group):
         self.timed_group_list.append(timed_group)
         self.timed_group_store.add(timed_group.get_name(), timed_group)
 

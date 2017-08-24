@@ -256,7 +256,6 @@ class AudioBlock(object):
     def set_duration(self, duration, beat):
         if duration<=0:
             return
-
         self.auto_fit_duration = False
         self.duration_time.set_sample_count(duration, beat)
         self.duration = self.duration_time.sample_count

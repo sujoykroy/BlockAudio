@@ -51,7 +51,8 @@ def draw_fill_rect_gradient(ctx, wh, color_fracs):
     ctx.restore()
 
 def draw_text(ctx, text,
-              x, y, width=None, corner=5, align=None, fit_width=False, height=None, fit_height=False,
+              x, y, width=None, corner=5, align=None, fit_width=False,
+              height=None, fit_height=False,
               text_color=None, back_color=None, border_color=None, border_width=1,
               padding=0, font_name=None, pre_draw=None):
 
@@ -75,9 +76,9 @@ def draw_text(ctx, text,
                 scale_x = width/float(w)
         else:
             layout.set_width(int(width*pango.SCALE))
-            w = width
+            #w = width
     else:
-        width = 0
+        width = w
 
     if height:
         if height<h:
@@ -92,9 +93,12 @@ def draw_text(ctx, text,
         if align.find("bottom-center")>=0:
             y -= t+h*scale_y+2*padding
         elif align.find("bottom")>=0:
-            y -= -t+h*scale_x+padding
+            y -= -t+h*scale_y+padding
+
         if align.find("right")>=0:
             x -= w*scale_x+padding
+        elif align.find("hcenter")>=0:
+            x -= (w*scale_x+padding)*.5
 
     if back_color:
         ctx.save()
