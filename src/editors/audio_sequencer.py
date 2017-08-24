@@ -51,6 +51,20 @@ class AudioSequencer(Gtk.Window):
         self.timed_group_list = timed_group_list
         self.filename = None
 
+        #beat control
+        self.bpm_explain_label = Gtk.Label()
+
+        self.bpm_spin_button = Gtk.SpinButton()
+        self.bpm_spin_button.set_range(1, 1000)
+        self.bpm_spin_button.set_increments(1,1)
+        self.bpm_spin_button.connect("value-changed", self.bpm_spin_button_value_changed)
+
+        self.div_num_spin_button = Gtk.SpinButton()
+        self.div_num_spin_button.set_range(1, 1000)
+        self.div_num_spin_button.set_increments(1,1)
+        self.div_num_spin_button.connect(
+            "value-changed", self.div_num_spin_button_value_changed)
+
         self.instru_list_label = Gtk.Label("Instruments")
         self.instru_list_label.set_pattern("___________")
         self.instru_list_label.set_justify(Gtk.Justification.CENTER)
@@ -81,7 +95,8 @@ class AudioSequencer(Gtk.Window):
         self.formula_combo_box = gui_utils.NameValueComboBox()
         self.formula_combo_box.set_value(None)
         self.add_formula_instru_button = Gtk.Button("Add Formula Instrument")
-        self.add_formula_instru_button.connect("clicked", self.add_formula_instru_button_clicked)
+        self.add_formula_instru_button.connect(
+            "clicked", self.add_formula_instru_button_clicked)
 
         formulator_list = [formulators.TomTomFormulator]
         for i in xrange(len(formulator_list)):
@@ -134,6 +149,17 @@ class AudioSequencer(Gtk.Window):
         self.toolbox.pack_start(
                 self.save_as_file_button, expand=False, fill=False, padding=2)
 
+        self.toolbox.pack_end(
+                self.bpm_explain_label, expand=False, fill=False, padding=2)
+        self.toolbox.pack_end(
+                self.div_num_spin_button, expand=False, fill=False, padding=2)
+        self.toolbox.pack_end(
+                Gtk.Label("Divisions"), expand=False, fill=False, padding=2)
+        self.toolbox.pack_end(
+                self.bpm_spin_button, expand=False, fill=False, padding=2)
+        self.toolbox.pack_end(
+                Gtk.Label("BPM"), expand=False, fill=False, padding=2)
+
         self.root_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.add(self.root_box)
 
@@ -181,7 +207,8 @@ class AudioSequencer(Gtk.Window):
 
         self.update_title()
         self.show_all()
-        #self.load_block(self.timed_group_list[0])
+        self.bpm_spin_button.set_value(self.beat.bpm)
+        self.div_num_spin_button.set_value(self.beat.div_per_beat)
 
     def rename_timed_group(self, timed_group, new_name):
         for tg in self.timed_group_list:
@@ -238,6 +265,8 @@ class AudioSequencer(Gtk.Window):
         app.attrib["version"] = "{0}".format(settings.APP_VERSION)
 
         root_elm = XmlElement("root")
+        root_elm.attrib["bpm"] = "{0}".format(self.beat.bpm)
+        root_elm.attrib["div"] = "{0}".format(self.beat.div_per_beat)
         root_elm.append(app)
 
         active_instru_set = set()
@@ -277,8 +306,16 @@ class AudioSequencer(Gtk.Window):
         except ET.ParseError as e:
             return
         root_elm = tree.getroot()
+
         app = root_elm.find("app")
         if app is None or app.attrib.get("name", None) != settings.APP_NAME: return False
+
+        self.beat.set_bpm(
+                int(float(root_elm.attrib.get("bpm", self.beat.bpm))))
+        self.beat.set_div_per_beat(
+                int(float(root_elm.attrib.get("div", self.beat.div_per_beat))))
+        self.bpm_spin_button.set_value(self.beat.bpm)
+        self.div_num_spin_button.set_value(self.beat.div_per_beat)
 
         loaded_instrus = dict()
         for instru_elm in root_elm.findall(AudioInstru.TAG_NAME):
@@ -344,16 +381,17 @@ class AudioSequencer(Gtk.Window):
         self.instru_list.append(instru)
         self.instru_store.add(instru.get_name(), instru)
 
-    def notebook_tab_close_button_clicked(self, widget, page):
-        page.cleanup()
-        self.block_instru_notebook.remove(page.get_widget())
+    def recompute_time(self):
+        for block in self.timed_group_list:
+            block.recompute_time(self.beat)
 
-        if isinstance(page, TimedGroupPage):
-            if page.audio_block.get_id() in self.opened_audio_blocks:
-                del self.opened_audio_blocks[page.audio_block.get_id()]
-        elif isinstance(page, FileInstruPage) or isinstance(page, FormulaInstruPage):
-            if page.instru.get_id() in self.opened_instrus:
-                del self.opened_instrus[page.instru.get_id()]
+        for page in self.opened_audio_blocks.values():
+            page.block_box.update_size(update_childs=True)
+            page.redraw_timed_group_editor()
+
+        for page in self.opened_audio_blocks.values():
+            if isinstance(page, FormulaInstruPage):
+                page.recreate_blow_viewer()
 
     def show_block(self, audio_block):
         self.add_page(
@@ -369,6 +407,26 @@ class AudioSequencer(Gtk.Window):
         elif isinstance(instru, AudioFormulaInstru):
             instru_page = FormulaInstruPage(self, instru)
         self.add_page(instru_page, instru.get_name())
+
+    def notebook_tab_close_button_clicked(self, widget, page):
+        page.cleanup()
+        self.block_instru_notebook.remove(page.get_widget())
+
+        if isinstance(page, TimedGroupPage):
+            if page.audio_block.get_id() in self.opened_audio_blocks:
+                del self.opened_audio_blocks[page.audio_block.get_id()]
+        elif isinstance(page, FileInstruPage) or isinstance(page, FormulaInstruPage):
+            if page.instru.get_id() in self.opened_instrus:
+                del self.opened_instrus[page.instru.get_id()]
+
+    def bpm_spin_button_value_changed(self, widget):
+        self.beat.set_bpm(widget.get_value())
+        self.bpm_explain_label.set_text("1 beat={0:.02f} sec".format(60./self.beat.bpm))
+        self.recompute_time()
+
+    def div_num_spin_button_value_changed(self, widget):
+        self.beat.set_div_per_beat(widget.get_value())
+        self.recompute_time()
 
     def open_file_button_clicked(self, widget):
         filename = gui_utils.FileOp.choose_file(self, "open")
@@ -409,7 +467,6 @@ class AudioSequencer(Gtk.Window):
         if filename:
             instru = AudioFileInstru(filename=filename)
             self.append_instru(instru)
-
 
     def add_formula_instru_button_clicked(self, widget):
         formulator_class = self.formula_combo_box.get_value()

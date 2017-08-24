@@ -25,6 +25,7 @@ class AudioTimedGroupBox(AudioBlockBox):
         if self.audio_block.add_block(block, at, "sample", beat):
             block_box = AudioBlockBox(block, parent_box=self)
             self.add_box(block_box, y=y)
+            block.start_time.set_unit("beat", beat)
 
     def remove_box(self, child_box):
         self.audio_block.remove_block(child_box.audio_block)
@@ -46,7 +47,11 @@ class AudioTimedGroupBox(AudioBlockBox):
                 y = 0
             block_box.set_y(y)
 
-    def update_size(self):
+    def update_size(self, update_childs=False):
+        if update_childs:
+            for block_box in self.block_boxes.values():
+                self.update_box_position(block_box)
+                block_box.update_size()
         AudioBlockBox.update_size(self)
         height = 0
         for track_box in self.block_boxes.values():

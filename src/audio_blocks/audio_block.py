@@ -40,7 +40,7 @@ class AudioBlockTime(object):
         newob.sample_count = self.sample_count
         return newob
 
-    def build(self, beat):
+    def recompute(self, beat):
         self._build_sample_count(beat)
 
     def set_value(self, value, beat):
@@ -193,8 +193,10 @@ class AudioBlock(object):
             self.midi_channel = int(elm.attrib.get("mchannel"))
             self.midi_velocity = int(elm.attrib.get("mvelocity"))
 
-    def build(self, beat):
-        self.duration_time.build(beat)
+    def recompute_time(self, beat):
+        self.duration_time.recompute(beat)
+        self.duration = self.duration_time.sample_count
+        self.start_time.recompute(beat)
 
     def __eq__(self, other):
         return isinstance(other, AudioBlock) and other.id_num == self.id_num

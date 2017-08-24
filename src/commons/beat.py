@@ -10,6 +10,10 @@ class Beat(object):
         self.bpm = bpm
         self.calculate()
 
+    def set_div_per_beat(self, value):
+        self.div_per_beat = int(value)
+        self.calculate()
+
     def set_sample_rate(self, sample_rate):
         self.sample_rate = sample_rate
         self.calculate()

@@ -22,7 +22,7 @@ class TimedGroupPage(object):
         if isinstance(self.audio_block, AudioTimedGroup):
             block_box = AudioTimedGroupBox(self.audio_block)
         else:
-            block_box = AudioBlockBox(self.audio_block)
+            block_box = AudioBlockBox(self.audio_block)#not used!
         self.block_box = block_box
 
         self.tab_name_label = Gtk.Label()
@@ -227,7 +227,7 @@ class TimedGroupPage(object):
         return self.tab_name_label
 
     def init_show(self):
-        self.audio_block.build(self.owner.beat)
+        self.audio_block.recompute_time(self.owner.beat)
         self.name_entry.set_text(self.audio_block.get_name())
         self.duration_unit_combo_box.set_value(self.audio_block.duration_time.unit)
         self.duration_spin_button.set_value(self.audio_block.duration_time.value)

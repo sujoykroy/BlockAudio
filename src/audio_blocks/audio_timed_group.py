@@ -73,6 +73,15 @@ class AudioTimedGroup(AudioBlock):
                 elm.append(block.get_xml_element())
         return elm
 
+    def recompute_time(self, beat):
+        if self.linked_to:
+            self.linked_to.recompute_time(beat)
+        else:
+            for block in self.blocks:
+                block.recompute_time(beat)
+            self.calculate_duration()
+        super(AudioTimedGroup, self).recompute_time(beat)
+
     def add_block(self, block, at, unit, beat):
         ret = True
         self.lock.acquire()
