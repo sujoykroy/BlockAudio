@@ -50,6 +50,8 @@ class AudioSequencer(Gtk.Window):
         self.instru_list = instru_list
         self.timed_group_list = timed_group_list
         self.filename = None
+        self.block_move_x = True
+        self.block_sticky_div = False
 
         #beat control
         self.bpm_explain_label = Gtk.Label()
@@ -142,6 +144,12 @@ class AudioSequencer(Gtk.Window):
         self.save_as_file_button = Gtk.Button("Save As")
         self.save_as_file_button.connect("clicked", self.save_as_file_button_clicked)
 
+        self.lock_block_move_x_button = Gtk.ToggleButton("Lock-X")
+        self.lock_block_move_x_button.connect("toggled", self.lock_block_move_x_button_toggled)
+
+        self.block_sticky_button = Gtk.ToggleButton("Sticky")
+        self.block_sticky_button.connect("toggled", self.block_sticky_button_toggled)
+
         self.toolbox.pack_start(
                 self.open_file_button, expand=False, fill=False, padding=2)
         self.toolbox.pack_start(
@@ -159,6 +167,10 @@ class AudioSequencer(Gtk.Window):
                 self.bpm_spin_button, expand=False, fill=False, padding=2)
         self.toolbox.pack_end(
                 Gtk.Label("BPM"), expand=False, fill=False, padding=2)
+        self.toolbox.pack_end(
+                self.block_sticky_button, expand=False, fill=False, padding=2)
+        self.toolbox.pack_end(
+                self.lock_block_move_x_button, expand=False, fill=False, padding=2)
 
         self.root_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.add(self.root_box)
@@ -407,6 +419,12 @@ class AudioSequencer(Gtk.Window):
         elif isinstance(instru, AudioFormulaInstru):
             instru_page = FormulaInstruPage(self, instru)
         self.add_page(instru_page, instru.get_name())
+
+    def lock_block_move_x_button_toggled(self, widget):
+        self.block_move_x = not widget.get_active()
+
+    def block_sticky_button_toggled(self, widget):
+        self.block_sticky_div = widget.get_active()
 
     def notebook_tab_close_button_clicked(self, widget, page):
         page.cleanup()

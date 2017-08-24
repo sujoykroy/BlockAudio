@@ -80,14 +80,16 @@ class AudioTimedGroupBox(AudioBlockBox):
                 return block_box
         return None
 
-    def move_box(self, box, init_position, start_point, end_point, beat):
+    def move_box(self, box, init_position, start_point, end_point, beat, move_x, sticky_div):
         start_point = self.transform_point(start_point)
         end_point = self.transform_point(end_point)
         xdiff = end_point.x - start_point.x
+        if not move_x:
+            xdiff = 0
         ydiff = end_point.y - start_point.y
         if isinstance(box, AudioBlockBox):
             xpos = init_position.x+xdiff
-            if beat:
+            if beat and sticky_div:
                 sample_pos = beat.pixel2sample(xpos)
             else:
                 sample_pos = xpos*1.0/AudioBlockBox.PIXEL_PER_SAMPLE
@@ -99,7 +101,7 @@ class AudioTimedGroupBox(AudioBlockBox):
 
         elif box.parent_box and box.parent_box.tail_box and box == box.parent_box.tail_box :
             xpos = end_point.x
-            if beat:
+            if beat and sticky_div:
                 sample_pos = beat.pixel2sample(xpos)
             else:
                 sample_pos = xpos*1.0/AudioBlockBox.PIXEL_PER_SAMPLE

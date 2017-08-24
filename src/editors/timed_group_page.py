@@ -416,7 +416,7 @@ class TimedGroupPage(object):
 
         self.block_box.show_beat_marks(ctx, self.owner.beat, self.tge_rect)
         self.block_box.show_current_position(ctx, rect)
-        self.block_box.show_outer_border_line(ctx)
+        self.block_box.show_outer_border_line(ctx, rect)
         ctx.rectangle(0, 0, widget.get_allocated_width(), widget.get_allocated_height())
         ctx.set_source_rgba(0, 0, 0, 1)
         ctx.stroke()
@@ -488,7 +488,9 @@ class TimedGroupPage(object):
                 self.block_box.move_box(
                     self.selected_box, self.selected_box_init_position,
                     self.mouse_init_point, self.mouse_point,
-                    beat=self.owner.beat)
+                    self.owner.beat,
+                    self.owner.block_move_x,
+                    self.owner.block_sticky_div)
                 self.show_audio_block_info()
             self.redraw_timed_group_editor()
         elif self.current_pos_selected:

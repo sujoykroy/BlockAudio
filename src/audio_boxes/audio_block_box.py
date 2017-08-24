@@ -282,11 +282,12 @@ class AudioBlockBox(object):
                 font_name="8", text_color=self.BeatTextColor)
         ctx.restore()
 
-    def show_outer_border_line(self, ctx):
-        ctx.save()
-        self.pre_draw(ctx)
-        ctx.rectangle(0, 0, self.width, self.height)
-        ctx.restore()
+    def show_outer_border_line(self, ctx, rect):
+        end_point = self.reverse_transform_point(Point(self.width, 0))
+        if end_point.x<rect.left or end_point.x>rect.left+rect.width:
+            return
+        ctx.move_to(end_point.x, rect.top)
+        ctx.line_to(end_point.x, rect.top+rect.height)
         draw_utils.draw_stroke(ctx, 2, self.BorderColor)
 
     def get_image(self):

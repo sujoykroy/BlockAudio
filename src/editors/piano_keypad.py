@@ -194,8 +194,8 @@ class PianoKeypad(Gtk.Window):
         if not self.use_server_process:
             self.audio_keypad_group = AudioKeypadGroup()
 
-            #self.audio_server = AudioServer.get_default()#AudioServer(buffer_mult=.98)
-            #self.audio_server.add_block(self.audio_keypad_group)
+            self.audio_server = AudioServer.get_default()
+            self.audio_server.add_block(self.audio_keypad_group)
             self.audio_samples_instru = None
         else:
             self.server_process_queue = multiprocessing.Queue()
