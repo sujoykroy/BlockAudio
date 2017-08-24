@@ -8,3 +8,4 @@ from samples_processor import SamplesProcessor
 from music_note import MusicNote
 from interpolator import Interpolator
 from keyboard_state import KeyboardState
+from wave_file_writer import WaveFileWriter

@@ -52,6 +52,9 @@ class TimedGroupPage(object):
         self.pause_button = Gtk.Button("Pause")
         self.pause_button.connect("clicked", self.pause_button_clicked)
 
+        self.export_button = Gtk.Button("Export")
+        self.export_button.connect("clicked", self.export_button_clicked)
+
         #timed group editor
         self.timed_group_editor = Gtk.DrawingArea()
         self.timed_group_editor.set_events(
@@ -188,6 +191,8 @@ class TimedGroupPage(object):
         self.control_grid.attach(self.duration_spin_button, left=1, top=1, width=1, height=1)
         self.control_grid.attach(self.duration_unit_combo_box, left=2, top=1, width=1, height=1)
 
+        self.control_grid.attach(self.export_button, left=4, top=0, width=1, height=1)
+
         self.play_button.props.valign = Gtk.Align.START
         self.pause_button.props.valign = Gtk.Align.START
 
@@ -266,6 +271,11 @@ class TimedGroupPage(object):
             self.child_block_edit_box.show()
         else:
             self.child_block_edit_box.hide()
+
+    def export_button_clicked(self, widget):
+        filename = gui_utils.FileOp.choose_file(self.root_window, "save", "audio")
+        if filename:
+            self.audio_block.save_to_file(filename)
 
     def child_block_delete_button_clicked(self, widget):
         if not self.selected_child_block_box:

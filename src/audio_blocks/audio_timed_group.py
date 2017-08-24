@@ -4,6 +4,9 @@ import time
 import numpy
 from ..commons import AudioMessage
 from xml.etree.ElementTree import Element as XmlElement
+import moviepy.editor
+from ..commons import WaveFileWriter
+import os
 
 class AudioTimedGroup(AudioBlock):
     TYPE_NAME = "tgrp"
@@ -303,3 +306,17 @@ class AudioTimedGroup(AudioBlock):
                 continue
             instru_set = instru_set.union(block_instru_set)
         return instru_set
+
+    def save_to_file(self, filename):
+        wave_filename = filename + ".wav.temp" + str(time.time())
+        wave_file_writer = WaveFileWriter(wave_filename, sample_rate=AudioBlock.SampleRate)
+        buffer_size = AudioBlock.FramesPerBuffer
+        for i in xrange(0, self.duration_time.sample_count, buffer_size):
+            frame_count = min(self.duration_time.sample_count-i, buffer_size)
+            audio_message = self.get_samples(frame_count, start_from=i, use_loop=False)
+            wave_file_writer.write(audio_message.samples)
+        wave_file_writer.close()
+        audio_clip = moviepy.editor.AudioFileClip(wave_filename)
+        audio_clip.write_audiofile(filename, fps=int(AudioBlock.SampleRate))
+        del audio_clip
+        os.remove(wave_filename)
