@@ -12,8 +12,15 @@ class AudioFileBlockCache(object):
 class AudioFileClipSamples(object):
     def __init__(self, filename):
         self.set_filename(filename)
+        self.mult = 1.
+
+    def __mul__(self, other):
+        newob = AudioFileClipSamples(self.filename)
+        newob.mult = other
+        return newob
 
     def set_filename(self, filename):
+        self.filename = filename
         self.audioclip = movie_editor.AudioFileClip(filename)
         sample_count = int(round(self.audioclip.duration*AudioBlock.SampleRate))
         self.shape = (sample_count, self.audioclip.nchannels)
@@ -42,15 +49,15 @@ class AudioFileClipSamples(object):
                 start_key = slice(None, None, start_key.step)
                 audioclip = self.audioclip.subclip(start_at, end_at)
                 samples = audioclip.to_soundarray(buffersize=1000).astype(numpy.float32)
-                return samples[start_key, end_key]
+                return samples[start_key, end_key]*self.mult
             else:
-                samples = audioclip.get_frame(start_key*1./AudioBlock.SampleRate)
+                samples = self.mult*audioclip.get_frame(start_key*1./AudioBlock.SampleRate)
                 return samples[end_key]
         else:
             raise IndexError()
 
 class AudioFileBlock(AudioSamplesBlock):
-    MAX_DURATION_SECONDS = 10*60
+    MAX_DURATION_SECONDS = 5*60
 
     def __init__(self, filename, sample_count=None, preload=True):
         AudioSamplesBlock.__init__(self, samples=AudioBlock.get_blank_data(1))

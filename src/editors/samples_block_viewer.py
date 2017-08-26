@@ -76,7 +76,9 @@ class SamplesBlockViewer(Gtk.Box):
         self.board_offset_y = 0
         self.redraw()
 
-    def redraw(self):
+    def redraw(self, full=False):
+        if full:
+            self.image_surface = None
         self.graph_board.queue_draw()
 
     def generate_image_name(self):

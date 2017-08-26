@@ -17,7 +17,7 @@ class FileInstruPage(object):
         self.owner = owner
         self.instru = instru
         self.audio_server = None
-        self.audio_block = self.instru.get_file_block()
+        self.audio_block = self.instru.create_note_block()
         self.audio_block.set_no_loop()
 
         self.image_surface = None
@@ -39,6 +39,14 @@ class FileInstruPage(object):
         self.keypad_button = Gtk.Button("Keypad")
         self.keypad_button.connect("clicked", self.keypad_button_clicked)
 
+        self.amplitude_spin_button = Gtk.SpinButton()
+        self.amplitude_spin_button.set_digits(2)
+        self.amplitude_spin_button.set_range(0, 5)
+        self.amplitude_spin_button.set_increments(.1,.1)
+        self.amplitude_spin_button.set_value(self.instru.amplitude)
+        self.amplitude_spin_button.connect(
+            "value-changed", self.amplitude_spin_button_value_changed)
+
         #play/pause
         self.play_button = Gtk.Button("Play")
         self.play_button.connect("clicked", self.play_button_clicked)
@@ -58,6 +66,8 @@ class FileInstruPage(object):
         self.info_grid.attach(self.duration_heading_label, left=4, top=1, width=1, height=1)
         self.info_grid.attach(self.duration_value_entry, left=5, top=1, width=1, height=1)
         self.info_grid.attach(self.keypad_button, left=3, top=0, width=1, height=1)
+        self.info_grid.attach(Gtk.Label("Ampl."), left=4, top=0, width=1, height=1)
+        self.info_grid.attach(self.amplitude_spin_button, left=5, top=0, width=1, height=1)
 
         self.play_button.props.valign = Gtk.Align.START
         self.pause_button.props.valign = Gtk.Align.START
@@ -101,6 +111,10 @@ class FileInstruPage(object):
     def keypad_button_clicked(self, widget):
         self.piano_keypad = PianoKeypad(owner=self.owner)
         self.piano_keypad.set_instru(self.instru)
+
+    def amplitude_spin_button_value_changed(self, widget):
+        self.instru.set_amplitude(widget.get_value())
+        self.block_viewer.redraw(full=True)
 
     def name_save_button_clicked(self, widget):
         new_name = self.name_entry.get_text().strip()

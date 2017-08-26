@@ -13,11 +13,13 @@ class AudioFileInstru(AudioSamplesInstru):
         AudioSamplesInstru.__init__(
                     self,
                     None)
+        self.amplitude = 1.
         self.set_name(os.path.basename(filename))
 
     def get_xml_element(self):
         elm = super(AudioFileInstru, self).get_xml_element()
         elm.attrib["filename"] = self.filename
+        elm.attrib["amplitude"] = "{0}".format(self.amplitude)
         return elm
 
     @classmethod
@@ -26,6 +28,7 @@ class AudioFileInstru(AudioSamplesInstru):
         if filename:
             newob = cls(filename)
             newob.load_from_xml(elm)
+            newob.amplitude = float(elm.attrib.get("amplitude", 1.))
             return newob
         return None
 
@@ -33,6 +36,12 @@ class AudioFileInstru(AudioSamplesInstru):
         if self.base_block is None:
             self.base_block = self.get_file_block()
         return self.base_block
+
+    def set_amplitude(self, amplitude):
+        if self.amplitude == amplitude:
+            return
+        self.amplitude = amplitude
+        self.readjust_blocks()
 
     def get_file_block(self):
         return AudioFileBlock(self.filename, self.sample_count)
@@ -45,8 +54,10 @@ class AudioFileInstru(AudioSamplesInstru):
         if self.samples is None:
             self.samples = self.get_base_block().get_full_samples()
         if isinstance(self.samples, AudioFileClipSamples):
-            return self.samples
-        return super(AudioFileInstru, self).get_samples_for(note)
+            samples = self.samples
+        else:
+            samples = super(AudioFileInstru, self).get_samples_for(note)
+        return samples*self.amplitude
 
     def set_filename(self, filename):
         self.filename = filename

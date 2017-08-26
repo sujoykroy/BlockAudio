@@ -45,7 +45,6 @@ class AudioServer(threading.Thread):
     def get_default():
         if AudioServer.Servers:
             return AudioServer.Servers[0]
-        print "newly create"
         server = AudioServer()
         server.play()
         return server

@@ -164,6 +164,8 @@ class AudioSequencer(Gtk.Window):
         self.block_sticky_button = Gtk.ToggleButton("Sticky")
         self.block_sticky_button.connect("toggled", self.block_sticky_button_toggled)
 
+        self.preview_button = Gtk.ToggleButton("Preview")
+
         self.toolbox.pack_start(
                 self.open_file_button, expand=False, fill=False, padding=2)
         self.toolbox.pack_start(
@@ -189,6 +191,8 @@ class AudioSequencer(Gtk.Window):
                 self.block_sticky_button, expand=False, fill=False, padding=2)
         self.toolbox.pack_end(
                 self.lock_block_move_x_button, expand=False, fill=False, padding=2)
+        self.toolbox.pack_end(
+                self.preview_button, expand=False, fill=False, padding=2)
 
         self.root_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.add(self.root_box)
@@ -540,7 +544,7 @@ class AudioSequencer(Gtk.Window):
         instru = tree_view.get_model().get_value(treeiter, 1)
         if self.preview_block:
             AudioServer.get_default().remove_block(self.preview_block)
-        if instru:
+        if instru and self.preview_button.get_active():
             block = instru.create_note_block()
             block.set_duration_unit("sec", self.beat)
             block.set_no_loop()
