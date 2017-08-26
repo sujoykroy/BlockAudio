@@ -13,6 +13,7 @@ from xml.etree.ElementTree import dump as XmlDump
 from xml.etree.ElementTree import ElementTree as XmlTree
 import os
 import xml.etree.ElementTree as ET
+from clipboard import Clipboard
 
 from gi.repository import GObject
 GObject.threads_init()
@@ -52,6 +53,7 @@ class AudioSequencer(Gtk.Window):
         self.filename = None
         self.block_move_x = True
         self.block_sticky_div = False
+        self.clipboard = Clipboard()
 
         #beat control
         self.bpm_explain_label = Gtk.Label()
@@ -60,6 +62,13 @@ class AudioSequencer(Gtk.Window):
         self.bpm_spin_button.set_range(1, 1000)
         self.bpm_spin_button.set_increments(1,1)
         self.bpm_spin_button.connect("value-changed", self.bpm_spin_button_value_changed)
+
+        self.buffer_mult_spin_button = Gtk.SpinButton()
+        self.buffer_mult_spin_button.set_digits(3)
+        self.buffer_mult_spin_button.set_range(0.001, 1)
+        self.buffer_mult_spin_button.set_increments(.01,.01)
+        self.buffer_mult_spin_button.set_value(AudioServer.DefaultBufferMult)
+        self.buffer_mult_spin_button.connect("value-changed", self.buffer_mult_spin_button_value_changed)
 
         self.div_num_spin_button = Gtk.SpinButton()
         self.div_num_spin_button.set_range(1, 1000)
@@ -168,6 +177,10 @@ class AudioSequencer(Gtk.Window):
         self.toolbox.pack_end(
                 Gtk.Label("BPM"), expand=False, fill=False, padding=2)
         self.toolbox.pack_end(
+                self.buffer_mult_spin_button, expand=False, fill=False, padding=2)
+        self.toolbox.pack_end(
+                Gtk.Label("Delay"), expand=False, fill=False, padding=2)
+        self.toolbox.pack_end(
                 self.block_sticky_button, expand=False, fill=False, padding=2)
         self.toolbox.pack_end(
                 self.lock_block_move_x_button, expand=False, fill=False, padding=2)
@@ -250,7 +263,6 @@ class AudioSequencer(Gtk.Window):
 
         page.init_show()
         widget = page.get_widget()
-
         close_button = gui_utils.CloseTabButton(self.notebook_tab_close_button_clicked, page)
 
         tab_label = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -419,6 +431,9 @@ class AudioSequencer(Gtk.Window):
         elif isinstance(instru, AudioFormulaInstru):
             instru_page = FormulaInstruPage(self, instru)
         self.add_page(instru_page, instru.get_name())
+
+    def buffer_mult_spin_button_value_changed(self, widget):
+        AudioServer.get_default().set_buffer_mult(widget.get_value())
 
     def lock_block_move_x_button_toggled(self, widget):
         self.block_move_x = not widget.get_active()

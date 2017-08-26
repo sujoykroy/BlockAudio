@@ -22,6 +22,10 @@ class AudioTimedGroup(AudioBlock):
             AudioTimedGroup.blank_data = self.get_blank_data(AudioBlock.FramesPerBuffer)
 
     def copy(self, linked=False):
+        if self.linked_to:
+            newob = self.linked_to.copy(linked=True)
+            self.copy_values_into(newob)
+            return newob
         newob = type(self)()
         self.copy_values_into(newob)
         if linked:
@@ -178,8 +182,8 @@ class AudioTimedGroup(AudioBlock):
             for linked_block in self.linked_copies:
                 linked_block.inclusive_duration = self.inclusive_duration
 
-    def get_samples(self, frame_count, start_from=None, use_loop=True, loop=None):
-        if self.paused:
+    def get_samples(self, frame_count, start_from=None, use_loop=True, loop=None, pausable=True):
+        if self.paused and pausable:
             return None
         self.lock.acquire()
         block_count = len(self.blocks)
@@ -191,6 +195,9 @@ class AudioTimedGroup(AudioBlock):
 
         if loop is None:
             loop = self.loop
+            full_duration = self.inclusive_duration
+        else:
+            full_duration = self.duration
 
         audio_message = AudioMessage()
         if loop and use_loop:
@@ -201,13 +208,13 @@ class AudioTimedGroup(AudioBlock):
                 if loop == self.LOOP_STRETCH:
                     if start_pos>=self.duration:
                         break
-                    read_pos = start_pos%self.inclusive_duration
+                    read_pos = start_pos%full_duration
                 else:
-                    start_pos %= self.inclusive_duration
+                    start_pos %= full_duration
                     read_pos = start_pos
 
-                if read_pos+spread>self.inclusive_duration:
-                    read_count = self.inclusive_duration-read_pos
+                if read_pos+spread>full_duration:
+                    read_count = full_duration-read_pos
                 else:
                     read_count = spread
                 seg_message = self.get_samples(read_count, start_from=read_pos, use_loop=False)
@@ -322,10 +329,15 @@ class AudioTimedGroup(AudioBlock):
         buffer_size = AudioBlock.FramesPerBuffer
         for i in xrange(0, self.duration_time.sample_count, buffer_size):
             frame_count = min(self.duration_time.sample_count-i, buffer_size)
-            audio_message = self.get_samples(frame_count, start_from=i, use_loop=False)
+            audio_message = self.get_samples(frame_count, start_from=i, use_loop=False, pausable=False)
             wave_file_writer.write(audio_message.samples)
         wave_file_writer.close()
         audio_clip = moviepy.editor.AudioFileClip(wave_filename)
         audio_clip.write_audiofile(filename, fps=int(AudioBlock.SampleRate))
         del audio_clip
         os.remove(wave_filename)
+
+    def get_description(self):
+        if self.linked_to:
+            return self.linked_to.get_description()
+        return self.name

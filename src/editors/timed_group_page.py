@@ -133,7 +133,7 @@ class TimedGroupPage(object):
             "changed", self.child_block_start_unit_combo_box_changed)
 
         self.child_block_delete_button = Gtk.Button("Delete")
-        self.child_block_delete_button.set_hexpand(True)
+        #self.child_block_delete_button.set_hexpand(True)
         self.child_block_delete_button.connect(
             "clicked", self.child_block_delete_button_clicked)
 
@@ -217,8 +217,23 @@ class TimedGroupPage(object):
         self.vcontainer.pack_end(
                 self.timed_group_editor_hscrollbar, expand=False, fill=False, padding=0)
 
+        self.popup_menu = Gtk.Menu()
+        self.copy_menu_item = Gtk.MenuItem("Copy")
+        self.copy_menu_item.connect("activate", self.copy_menu_item_activated)
+        self.popup_menu.append(self.copy_menu_item)
+        self.context_menu_block_box = None
+
+    def show_context_menu(self, block_box):
+        self.context_menu_block_box = block_box
+        self.popup_menu.show_all()
+        self.popup_menu.popup(None, None, None, None, 0, Gtk.get_current_event_time())
+
     def update_tab_name_label(self):
         self.tab_name_label.set_markup("{0}<sup> bg</sup>".format(self.audio_block.get_name()))
+
+    def copy_menu_item_activated(self, menu_item):
+        if self.context_menu_block_box:
+            self.owner.clipboard.set_block(self.context_menu_block_box.audio_block)
 
     def get_widget(self):
         return self.vcontainer
@@ -325,7 +340,7 @@ class TimedGroupPage(object):
             return
         child_block = self.selected_child_block_box.audio_block
         if child_block.instru:
-            self.owner.load_instru(child_block.instru)
+            self.owner.show_instru(child_block.instru)
         else:
             self.owner.show_block(child_block.linked_to)
 
@@ -441,6 +456,9 @@ class TimedGroupPage(object):
                 instru = self.owner.get_selected_instru()
                 if instru:
                     new_block = instru.create_note_block()
+            elif self.owner.keyboard_state.shift_key_pressed:
+                if self.owner.clipboard.block:
+                    new_block = self.owner.clipboard.block.copy()
 
             if new_block:
                 pos = self.block_box.transform_point(self.mouse_point)
@@ -465,7 +483,11 @@ class TimedGroupPage(object):
                     self.selected_child_block_box = None
                 self.show_audio_block_info()
         elif event.button == 3:#Left mouse
-            self.selected_box = self.block_box
+            box = self.block_box.find_box_at(self.mouse_point, only_block=True)
+            if box:
+                self.show_context_menu(box)
+            else:
+                self.selected_box = self.block_box
 
         if self.selected_box:
             self.selected_box_init_position = self.selected_box.get_position()

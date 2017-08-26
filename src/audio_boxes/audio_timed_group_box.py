@@ -69,7 +69,7 @@ class AudioTimedGroupBox(AudioBlockBox):
                 continue
             box.draw(ctx, is_selected=(selected_box==box))
 
-    def find_box_at(self, point):
+    def find_box_at(self, point, only_block=False):
         rel_point = self.transform_point(point)
         for block_box_id in reversed(self.block_zs):
             block_box = self.block_boxes.get(block_box_id)

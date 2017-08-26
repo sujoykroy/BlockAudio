@@ -241,8 +241,8 @@ class AudioBlockBox(object):
     def show_current_position(self, ctx, rect):
         x = self.audio_block.current_pos*AudioBlockBox.PIXEL_PER_SAMPLE
         point = self.abs_reverse_transform_point(Point(x, 0))
-        ctx.move_to(point.x, rect.top)
-        ctx.line_to(point.x, rect.top+rect.height)
+        ctx.move_to(point.x, 0)
+        ctx.line_to(point.x, rect.height)
         draw_utils.draw_stroke(ctx, 2, self.CurrentPosColor)
 
     def set_current_position(self, abs_point):
@@ -260,18 +260,15 @@ class AudioBlockBox(object):
     def show_div_marks(self, ctx, beat, rect):
         start_point = self.transform_point(Point(rect.left, 0))
         end_point = self.transform_point(Point(rect.left+rect.width, 0))
-        ctx.save()
-        self.pre_draw(ctx)
         for x in beat.get_div_pixels(start_point.x, end_point.x, 50/self.scale_x):
-            ctx.move_to(x, 0)
-            ctx.line_to(x, rect.height)
-        ctx.restore()
+            point = self.abs_reverse_transform_point(Point(x, 0))
+            ctx.move_to(point.x, 0)
+            ctx.line_to(point.x, rect.height)
         draw_utils.draw_stroke(ctx, 1, self.DivColor)
 
     def show_beat_marks(self, ctx, beat, rect):
         start_point = self.transform_point(Point(rect.left, 0))
         end_point = self.transform_point(Point(rect.left+rect.width, 0))
-        ctx.save()
         for index, x in beat.get_beat_pixels(start_point.x, end_point.x, 50/self.scale_x):
             point = self.abs_reverse_transform_point(Point(x, 0))
             ctx.move_to(point.x, 0)
@@ -280,14 +277,13 @@ class AudioBlockBox(object):
             draw_utils.draw_text(
                 ctx, "{0}".format(index+1), point.x+2, 0,
                 font_name="8", text_color=self.BeatTextColor)
-        ctx.restore()
 
     def show_outer_border_line(self, ctx, rect):
         end_point = self.reverse_transform_point(Point(self.width, 0))
         if end_point.x<rect.left or end_point.x>rect.left+rect.width:
             return
-        ctx.move_to(end_point.x, rect.top)
-        ctx.line_to(end_point.x, rect.top+rect.height)
+        ctx.move_to(end_point.x, 0)
+        ctx.line_to(end_point.x, rect.height)
         draw_utils.draw_stroke(ctx, 2, self.BorderColor)
 
     def get_image(self):

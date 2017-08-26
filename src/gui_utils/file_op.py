@@ -26,11 +26,10 @@ class FileOp(object):
             dialog.props.do_overwrite_confirmation = True
         if file_types == "audio":
             file_types = [["Audio", "audio/*"]]
-            dialog.set_preview_audio(True)
 
         for file_name, mime_type in file_types:
             if file_name == "Audio":
-                dialog.set_preview_audio(not True)
+                dialog.set_preview_audio(True)
             filter_text = Gtk.FileFilter()
             filter_text.set_name("{0} files".format(file_name))
             if mime_type.find("/")>0:
@@ -129,10 +128,9 @@ class FileChooserDialog(Gtk.FileChooserDialog):
 
             filename = self.get_filename()
             if filename:
-                self.audio_file_block = AudioFileBlock(filename, preload=False)
+                self.audio_file_block = AudioFileBlock(filename, preload=True)
                 self.audio_file_block.set_no_loop()
                 self.audio_file_block.play()
-                self.audio_server.play()
                 self.audio_server.add_block(self.audio_file_block)
 
     def destroy(self):

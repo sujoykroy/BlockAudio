@@ -91,8 +91,6 @@ class AudioFileBlock(AudioSamplesBlock):
         self.set_filename(self.filename)
 
     def load_samples(self):
-        if not self.preload:
-            return
         if self.samples_loaded:
             return
 
@@ -133,9 +131,7 @@ class AudioFileBlock(AudioSamplesBlock):
         self.samples_loaded = False
 
     def get_samples(self, frame_count, start_from=None, use_loop=True, loop=None):
-        if self.preload:
-            if not self.samples_loaded:
-                self.load_samples()
+        self.load_samples()
         return AudioSamplesBlock.get_samples(
                 self, frame_count, start_from=start_from, use_loop=use_loop, loop=loop)
 

@@ -1,6 +1,6 @@
 from audio_server import AudioServer
 from audio_block import AudioBlock, AudioBlockTime
-from audio_file_block import AudioSamplesBlock
+from audio_samples_block import AudioSamplesBlock
 from audio_file_block import AudioFileBlock
 from audio_timed_group import AudioTimedGroup
 from audio_keypad_group import AudioKeypadGroup
