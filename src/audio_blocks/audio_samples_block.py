@@ -109,6 +109,8 @@ class AudioSamplesBlock(AudioBlock):
                 self.lock.acquire()
                 self.current_pos = start_pos
                 self.lock.release()
+                if self.live_once and self.current_pos >= self.duration:
+                    self.destroy()
 
         if data.shape[0]<frame_count:
             blank_shape = (frame_count - data.shape[0], AudioBlock.ChannelCount)

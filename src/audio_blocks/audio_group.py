@@ -14,6 +14,7 @@ class AudioGroup(AudioBlock):
     def add_block(self, block):
         self.lock.acquire()
         self.blocks.append(block)
+        block.set_owner(self)
         self.lock.release()
         block.play()
 

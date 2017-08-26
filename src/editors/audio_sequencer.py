@@ -547,6 +547,7 @@ class AudioSequencer(Gtk.Window):
         if instru and self.preview_button.get_active():
             block = instru.create_note_block()
             block.set_duration_unit("sec", self.beat)
+            block.live_once = True
             block.set_no_loop()
             if block.duration_time.value>5:
                 block.set_duration_value(5, self.beat)

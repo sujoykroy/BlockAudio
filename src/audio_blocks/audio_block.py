@@ -152,6 +152,7 @@ class AudioBlock(object):
         self.id_num = AudioBlock.IdSeed
         AudioBlock.IdSeed += 1
         self.name = self.new_name()
+        self.live_once=False
 
     def copy_values_into(self, newob):
         newob.loop = self.loop
