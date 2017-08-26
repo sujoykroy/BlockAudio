@@ -1,5 +1,5 @@
 from audio_samples_instru import AudioSamplesInstru
-from audio_file_block import AudioFileBlock
+from audio_file_block import AudioFileBlock, AudioFileClipSamples
 import moviepy.editor as moviepy_editor
 import os
 
@@ -44,6 +44,8 @@ class AudioFileInstru(AudioSamplesInstru):
     def get_samples_for(self, note):
         if self.samples is None:
             self.samples = self.get_base_block().get_full_samples()
+        if isinstance(self.samples, AudioFileClipSamples):
+            return self.samples
         return super(AudioFileInstru, self).get_samples_for(note)
 
     def set_filename(self, filename):

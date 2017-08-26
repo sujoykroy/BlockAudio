@@ -32,6 +32,7 @@ class AudioSequencer(Gtk.Window):
                          pixel_per_sample=AudioBlockBox.PIXEL_PER_SAMPLE)
         self.tge_rect = Rect(0, 0, 1, 1)
         self.keyboard_state = KeyboardState()
+        self.preview_block = None
 
         self.connect("delete-event", self.quit)
         self.connect("key-press-event", self.on_key_press)
@@ -61,14 +62,16 @@ class AudioSequencer(Gtk.Window):
         self.bpm_spin_button = Gtk.SpinButton()
         self.bpm_spin_button.set_range(1, 1000)
         self.bpm_spin_button.set_increments(1,1)
-        self.bpm_spin_button.connect("value-changed", self.bpm_spin_button_value_changed)
+        self.bpm_spin_button.connect(
+            "value-changed", self.bpm_spin_button_value_changed)
 
         self.buffer_mult_spin_button = Gtk.SpinButton()
         self.buffer_mult_spin_button.set_digits(3)
         self.buffer_mult_spin_button.set_range(0.001, 1)
         self.buffer_mult_spin_button.set_increments(.01,.01)
         self.buffer_mult_spin_button.set_value(AudioServer.DefaultBufferMult)
-        self.buffer_mult_spin_button.connect("value-changed", self.buffer_mult_spin_button_value_changed)
+        self.buffer_mult_spin_button.connect(
+            "value-changed", self.buffer_mult_spin_button_value_changed)
 
         self.div_num_spin_button = Gtk.SpinButton()
         self.div_num_spin_button.set_range(1, 1000)
@@ -96,6 +99,8 @@ class AudioSequencer(Gtk.Window):
         self.instru_list_view.set_headers_visible(False)
         self.instru_list_view.connect(
             "row-activated", self.instru_list_view_row_activated)
+        self.instru_list_view.connect(
+            "cursor-changed", self.instru_list_view_item_selected)
         self.instru_list_view.set_model(self.instru_store)
 
         self.add_file_instru_button = Gtk.Button("Add File Instrument")
@@ -523,6 +528,26 @@ class AudioSequencer(Gtk.Window):
             return
         instru = tree_view.get_model().get_value(treeiter, 1)
         self.show_instru(instru)
+
+    def instru_list_view_item_selected(self, tree_view):
+        path, _ = tree_view.get_cursor()
+        tree_model = tree_view.get_model()
+        if not tree_model:
+            return#called during window closing
+        treeiter = tree_model.get_iter(path)
+        if not treeiter:
+            return
+        instru = tree_view.get_model().get_value(treeiter, 1)
+        if self.preview_block:
+            AudioServer.get_default().remove_block(self.preview_block)
+        if instru:
+            block = instru.create_note_block()
+            block.set_duration_unit("sec", self.beat)
+            block.set_no_loop()
+            if block.duration_time.value>5:
+                block.set_duration_value(5, self.beat)
+            self.preview_block = block
+            AudioServer.get_default().add_block(self.preview_block)
 
     def timed_group_list_view_row_activated(self, tree_view, path, column):
         treeiter = tree_view.get_model().get_iter(path)
