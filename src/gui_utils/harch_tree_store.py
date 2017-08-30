@@ -26,3 +26,8 @@ class HarchTreeStore(Gtk.TreeStore):
         self.remove(self.added_items[item])
         del self.added_items[item]
         self.add(new_name, item)
+
+    def remove_item(self, item):
+        print self.added_items.keys()
+        self.remove(self.added_items[item])
+        del self.added_items[item]

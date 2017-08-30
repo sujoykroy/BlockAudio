@@ -77,6 +77,13 @@ class AudioTimedGroup(AudioBlock):
                 elm.append(block.get_xml_element())
         return elm
 
+    def has_block_linked_to(self, linked_to):
+        for block in self.blocks:
+            if isinstance(block, AudioTimedGroup):
+                if block.linked_to == linked_to:
+                    return True
+        return False
+
     def recompute_time(self, beat):
         if self.linked_to:
             self.linked_to.recompute_time(beat)

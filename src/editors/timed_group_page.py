@@ -292,7 +292,7 @@ class TimedGroupPage(object):
         yes_no_dialog = gui_utils.YesNoDialog(
                 self.root_window,
                 "Delete Block",
-                "Are you sure to delete selected block from this parent block")
+                "Are you sure to delete selected block from this parent block? ")
         if yes_no_dialog.run() != Gtk.ResponseType.YES:
             yes_no_dialog.destroy()
             return

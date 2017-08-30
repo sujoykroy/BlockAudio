@@ -207,6 +207,9 @@ class AudioSequencer(Gtk.Window):
         self.tg_duplicate_menu_item = Gtk.MenuItem("Duplicate")
         self.tg_duplicate_menu_item.connect("activate", self.tg_duplicate_menu_item_activated)
         self.timed_group_popmenu.append(self.tg_duplicate_menu_item)
+        self.tg_delete_menu_item = Gtk.MenuItem("Delete")
+        self.tg_delete_menu_item.connect("activate", self.tg_delete_menu_item_activated)
+        self.timed_group_popmenu.append(self.tg_delete_menu_item)
 
         #instru list display
         self.blockinstru_box.pack_start(
@@ -373,8 +376,7 @@ class AudioSequencer(Gtk.Window):
         loaded_blocks = dict()
         for block_elm in root_elm.findall(AudioBlock.TAG_NAME):
             block = self.load_block_from_xml(block_elm, root_elm, loaded_blocks, loaded_instrus)
-            self.timed_group_list.append(block)
-            self.timed_group_store.add(block.get_name(), block)
+            self.append_timed_group(block)
 
     def load_block_by_name(self, block_name, root_elm, loaded_blocks, loaded_instrus):
         if block_name in loaded_blocks:
@@ -449,17 +451,46 @@ class AudioSequencer(Gtk.Window):
             instru_page = FormulaInstruPage(self, instru)
         self.add_page(instru_page, instru.get_name())
 
+    def append_timed_group(self, timed_group):
+        self.timed_group_list.append(timed_group)
+        self.timed_group_store.add(timed_group.get_name(), timed_group)
+
+    def remove_timed_group(self, timed_group):
+        self.timed_group_list.remove(timed_group)
+        self.timed_group_store.remove_item(timed_group)
+
     def tg_duplicate_menu_item_activated(self, widget):
         tg = self.get_selected_timed_group()
-        if tg:
-            orig_name = tg.get_name()
-            tg = tg.copy()
-            i = 1
-            new_name = orig_name
-            self.append_timed_group(tg)
-            while not self.rename_timed_group(tg, new_name):
-                i += 1
-                new_name = "{0}_{1}".format(orig_name , i)
+        if not tg:
+            return
+        orig_name = tg.get_name()
+        tg = tg.copy()
+        i = 1
+        new_name = orig_name
+        self.append_timed_group(tg)
+        while not self.rename_timed_group(tg, new_name):
+            i += 1
+            new_name = "{0}_{1}".format(orig_name , i)
+
+    def tg_delete_menu_item_activated(self, widget):
+        tg = self.get_selected_timed_group()
+        if not tg:
+            return
+        for block in self.timed_group_list:
+            if block.has_block_linked_to(tg):
+                error_text = "This block-group is being used in {0}.\n Can't delete it now!"
+                dlg = gui_utils.NoticeDialog(
+                    self, error_text.format(block.get_name()), "Error")
+                return
+        yes_no_dialog = gui_utils.YesNoDialog(
+                self,
+                "Delete Block-Group",
+                "Are you sure to delete selected block?")
+        if yes_no_dialog.run() != Gtk.ResponseType.YES:
+            yes_no_dialog.destroy()
+            return
+        yes_no_dialog.destroy()
+        self.remove_timed_group(tg)
 
     def timed_group_list_view_mouse_released(self, widget, event):
         if event.button == 3:#Left mouse
@@ -546,10 +577,6 @@ class AudioSequencer(Gtk.Window):
         timed_group.set_duration_unit(AudioBlockTime.TIME_UNIT_BEAT, self.beat)
         timed_group.set_duration_value(1, self.beat)
         self.append_timed_group(timed_group)
-
-    def append_timed_group(self, timed_group):
-        self.timed_group_list.append(timed_group)
-        self.timed_group_store.add(timed_group.get_name(), timed_group)
 
     def instru_list_view_row_activated(self, tree_view, path, column):
         treeiter = tree_view.get_model().get_iter(path)
