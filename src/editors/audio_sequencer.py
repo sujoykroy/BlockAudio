@@ -23,7 +23,8 @@ class AudioSequencer(Gtk.Window):
                 instru_list=None, timed_group_list=None, window_list=None):
         Gtk.Window.__init__(self, title="Sequencer", resizable=True)
         self.set_size_request(width, height)
-        self.set_events(Gdk.EventMask.POINTER_MOTION_MASK)
+        self.set_events(Gdk.EventMask.POINTER_MOTION_MASK|\
+                        Gdk.EventMask.BUTTON_RELEASE_MASK)
 
         self.opened_audio_blocks = dict()
         self.opened_instrus = dict()
@@ -141,6 +142,8 @@ class AudioSequencer(Gtk.Window):
         self.timed_group_list_view.connect(
             "row-activated", self.timed_group_list_view_row_activated)
         self.timed_group_list_view.set_model(self.timed_group_store)
+        self.timed_group_list_view.connect(
+            "button-release-event", self.timed_group_list_view_mouse_released)
 
         self.add_block_group_button = Gtk.Button("Add Block Group")
         self.add_block_group_button.connect("clicked", self.add_block_group_button_clicked)
@@ -199,6 +202,11 @@ class AudioSequencer(Gtk.Window):
 
         self.blockinstru_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.blockinstru_box.set_size_request(100, -1)
+
+        self.timed_group_popmenu = Gtk.Menu()
+        self.tg_duplicate_menu_item = Gtk.MenuItem("Duplicate")
+        self.tg_duplicate_menu_item.connect("activate", self.tg_duplicate_menu_item_activated)
+        self.timed_group_popmenu.append(self.tg_duplicate_menu_item)
 
         #instru list display
         self.blockinstru_box.pack_start(
@@ -440,6 +448,23 @@ class AudioSequencer(Gtk.Window):
         elif isinstance(instru, AudioFormulaInstru):
             instru_page = FormulaInstruPage(self, instru)
         self.add_page(instru_page, instru.get_name())
+
+    def tg_duplicate_menu_item_activated(self, widget):
+        tg = self.get_selected_timed_group()
+        if tg:
+            orig_name = tg.get_name()
+            tg = tg.copy()
+            i = 1
+            new_name = orig_name
+            self.append_timed_group(tg)
+            while not self.rename_timed_group(tg, new_name):
+                i += 1
+                new_name = "{0}_{1}".format(orig_name , i)
+
+    def timed_group_list_view_mouse_released(self, widget, event):
+        if event.button == 3:#Left mouse
+            self.timed_group_popmenu.show_all()
+            self.timed_group_popmenu.popup(None, None, None, None, 0, Gtk.get_current_event_time())
 
     def buffer_mult_spin_button_value_changed(self, widget):
         AudioServer.get_default().set_buffer_mult(widget.get_value())

@@ -52,7 +52,7 @@ class AudioTimedGroupBox(AudioBlockBox):
             for block_box in self.block_boxes.values():
                 self.update_box_position(block_box)
                 block_box.update_size()
-        AudioBlockBox.update_size(self)
+        self.width = self.audio_block.inclusive_duration*AudioBlockBox.PIXEL_PER_SAMPLE
         height = 0
         for track_box in self.block_boxes.values():
             end_y = track_box.y + track_box.height

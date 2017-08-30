@@ -129,7 +129,7 @@ class FileInstruPage(object):
             self.audio_server.remove_block(self.audio_block)
             self.play_button.show()
             self.pause_button.hide()
-        self.audio_block.unload_samples()
+        self.audio_block.destroy()
         self.audio_block = self.instru.get_file_block()
         self.block_viewer.set_block(self.audio_block)
         self.show_duration()

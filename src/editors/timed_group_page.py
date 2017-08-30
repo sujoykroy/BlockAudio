@@ -220,7 +220,10 @@ class TimedGroupPage(object):
         self.popup_menu = Gtk.Menu()
         self.copy_menu_item = Gtk.MenuItem("Copy")
         self.copy_menu_item.connect("activate", self.copy_menu_item_activated)
+        self.delete_menu_item = Gtk.MenuItem("Delete")
+        self.delete_menu_item.connect("activate", self.delete_menu_item_activated)
         self.popup_menu.append(self.copy_menu_item)
+        self.popup_menu.append(self.delete_menu_item)
         self.context_menu_block_box = None
 
     def show_context_menu(self, block_box):
@@ -230,10 +233,6 @@ class TimedGroupPage(object):
 
     def update_tab_name_label(self):
         self.tab_name_label.set_markup("{0}<sup> bg</sup>".format(self.audio_block.get_name()))
-
-    def copy_menu_item_activated(self, menu_item):
-        if self.context_menu_block_box:
-            self.owner.clipboard.set_block(self.context_menu_block_box.audio_block)
 
     def get_widget(self):
         return self.vcontainer
@@ -287,13 +286,8 @@ class TimedGroupPage(object):
         else:
             self.child_block_edit_box.hide()
 
-    def export_button_clicked(self, widget):
-        filename = gui_utils.FileOp.choose_file(self.root_window, "save", "audio")
-        if filename:
-            self.audio_block.save_to_file(filename)
-
-    def child_block_delete_button_clicked(self, widget):
-        if not self.selected_child_block_box:
+    def delete_child_block_box(self, child_block_box):
+        if not child_block_box:
             return
         yes_no_dialog = gui_utils.YesNoDialog(
                 self.root_window,
@@ -304,11 +298,28 @@ class TimedGroupPage(object):
             return
         yes_no_dialog.destroy()
 
-        child_block = self.selected_child_block_box.audio_block
-        self.block_box.remove_box(self.selected_child_block_box)
-        self.selected_child_block_box = None
+        child_block = child_block_box.audio_block
+        self.block_box.remove_box(child_block_box)
         self.child_block_edit_box.hide()
         self.redraw_timed_group_editor()
+
+    def copy_menu_item_activated(self, menu_item):
+        if self.context_menu_block_box:
+            self.owner.clipboard.set_block(self.context_menu_block_box.audio_block)
+
+    def delete_menu_item_activated(self, menu_item):
+        if self.context_menu_block_box:
+            self.delete_child_block_box(self.context_menu_block_box)
+            self.context_menu_block_box = None
+
+    def export_button_clicked(self, widget):
+        filename = gui_utils.FileOp.choose_file(self.root_window, "save", "audio")
+        if filename:
+            self.audio_block.save_to_file(filename)
+
+    def child_block_delete_button_clicked(self, widget):
+        self.delete_child_block_box(self.selected_child_block_box)
+        self.selected_child_block_box = None
 
     def child_block_loop_combo_box_changed(self, widget):
         if not self.selected_child_block_box:

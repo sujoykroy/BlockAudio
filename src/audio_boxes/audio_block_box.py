@@ -279,8 +279,9 @@ class AudioBlockBox(object):
                 font_name="8", text_color=self.BeatTextColor)
 
     def show_outer_border_line(self, ctx, rect):
-        end_point = self.reverse_transform_point(Point(self.width, 0))
-        if end_point.x<rect.left or end_point.x>rect.left+rect.width:
+        duration_width = self.audio_block.duration*AudioBlockBox.PIXEL_PER_SAMPLE
+        end_point = self.reverse_transform_point(Point(duration_width, 0))
+        if duration_width<rect.left or duration_width>rect.left+rect.width:
             return
         ctx.move_to(end_point.x, 0)
         ctx.line_to(end_point.x, rect.height)

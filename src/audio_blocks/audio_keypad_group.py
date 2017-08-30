@@ -84,7 +84,6 @@ class AudioKeypadGroup(AudioGroup):
                 if self.record:
                     self.history[block.get_id()][2] = time.time()
                 block.destroy()
-                del self.blocks[i]
             self.lock.release()
 
         audio_message = super(AudioKeypadGroup, self).get_samples(frame_count)
