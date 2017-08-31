@@ -272,15 +272,6 @@ class AudioSequencer(Gtk.Window):
         return True
 
     def add_page(self, page, name):
-        if isinstance(page, TimedGroupPage):
-            if page.audio_block.get_id() in self.opened_audio_blocks:
-                return
-            self.opened_audio_blocks[page.audio_block.get_id()] = page
-        elif isinstance(page, FileInstruPage):
-            if page.instru.get_id() in self.opened_instrus:
-                return
-            self.opened_instrus[page.instru.get_id()] = page
-
         page.init_show()
         widget = page.get_widget()
         close_button = gui_utils.CloseTabButton(self.notebook_tab_close_button_clicked, page)
@@ -290,8 +281,9 @@ class AudioSequencer(Gtk.Window):
         tab_label.pack_start(close_button, expand=False, fill=False, padding=5)
         tab_label.show_all()
 
-        self.block_instru_notebook.append_page(widget, tab_label)
+        page.page_num=self.block_instru_notebook.append_page(widget, tab_label)
         self.block_instru_notebook.show()
+        return page
 
     def update_title(self):
         filename = self.filename
@@ -437,19 +429,29 @@ class AudioSequencer(Gtk.Window):
                 page.recreate_blow_viewer()
 
     def show_block(self, audio_block):
-        self.add_page(
-            TimedGroupPage(self, audio_block, self),
-            audio_block.get_name()
-        )
+        if audio_block.get_id() in self.opened_audio_blocks:
+            page=self.opened_audio_blocks[audio_block.get_id()]
+        else:
+            page=self.add_page(
+                TimedGroupPage(self, audio_block, self),
+                audio_block.get_name())
+            self.opened_audio_blocks[audio_block.get_id()] = page
+        self.block_instru_notebook.set_current_page(page.page_num)
 
     def show_instru(self, instru):
         if not instru:
             return
-        if isinstance(instru, AudioFileInstru):
-            instru_page = FileInstruPage(self, instru)
-        elif isinstance(instru, AudioFormulaInstru):
-            instru_page = FormulaInstruPage(self, instru)
-        self.add_page(instru_page, instru.get_name())
+        if instru.get_id() in self.opened_instrus:
+            page = self.opened_instrus[instru.get_id()]
+        else:
+            if isinstance(instru, AudioFileInstru):
+                instru_page = FileInstruPage(self, instru)
+            elif isinstance(instru, AudioFormulaInstru):
+                instru_page = FormulaInstruPage(self, instru)
+            page = self.add_page(instru_page, instru.get_name())
+            self.opened_instrus[instru.get_id()] = page
+
+        self.block_instru_notebook.set_current_page(page.page_num)
 
     def append_timed_group(self, timed_group):
         self.timed_group_list.append(timed_group)
