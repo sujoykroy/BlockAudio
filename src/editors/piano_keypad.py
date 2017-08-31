@@ -1,11 +1,12 @@
 from gi.repository import Gtk, Gdk
 from ..commons import KeyboardState, MusicNote, Color, draw_utils
 from ..audio_blocks import AudioServer, AudioKeypadGroup, AudioTimedGroup
-from ..audio_blocks import AudioFormulaInstru, AudioFileInstru
+from ..audio_blocks import AudioFormulaInstru, AudioFileInstru, AudioBlock
 from .. import formulators
 import multiprocessing
 import Queue
 import time
+import numpy
 
 from gi.repository import GObject
 GObject.threads_init()
@@ -176,6 +177,13 @@ class PianoKeypad(Gtk.Window):
             "value-changed",
             self.scale_incre_spin_button_value_changed)
 
+        self.mute_button = Gtk.CheckButton("Mute")
+
+        self.midi_channel_spin_button = Gtk.SpinButton()
+        self.midi_channel_spin_button.set_range(-1, 128)
+        self.midi_channel_spin_button.set_value(-1)
+        self.midi_channel_spin_button.set_increments(1, 1)
+
         self.record_button = Gtk.ToggleButton("Record")
         self.record_button.connect("toggled", self.record_button_toggled)
 
@@ -209,9 +217,15 @@ class PianoKeypad(Gtk.Window):
         self.info_box.pack_start(
             self.record_button, expand=False, fill=False, padding=5)
         self.info_box.pack_end(
+            self.mute_button, expand=False, fill=False, padding=5)
+        self.info_box.pack_end(
             self.scale_incre_spin_button, expand=False, fill=False, padding=5)
         self.info_box.pack_end(
             Gtk.Label("Scale Increment"), expand=False, fill=False, padding=5)
+        self.info_box.pack_end(
+            self.midi_channel_spin_button, expand=False, fill=False, padding=5)
+        self.info_box.pack_end(
+            Gtk.Label("Midi Channel"), expand=False, fill=False, padding=5)
 
         self.root_box = Gtk.VBox()
         self.add(self.root_box)
@@ -263,10 +277,16 @@ class PianoKeypad(Gtk.Window):
             if not self.use_server_process:
                 if piano_key and self.audio_samples_instru and piano_key.note:
                     note_name = self.piano_board.get_note_name(piano_key)
-                    note_block = \
-                        self.audio_samples_instru.create_note_block(note_name)
+                    if not self.mute_button.get_active():
+                        note_block = \
+                            self.audio_samples_instru.create_note_block(note_name)
+                        samples = note_block.samples
+                    else:
+                        samples = numpy.zeros((0, AudioBlock.ChannelCount))
                     audio_block = self.audio_keypad_group.add_samples(
-                            note_block.samples, note_name)
+                            samples, note_name,
+                            self.midi_channel_spin_button.get_value(),
+                            self.owner.beat)
                     self.pressed_keys[event.string] = audio_block
             else:
                 if piano_key and piano_key.note:

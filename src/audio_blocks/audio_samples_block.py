@@ -103,7 +103,7 @@ class AudioSamplesBlock(AudioBlock):
             else:
                 data = self.samples[start_pos: start_pos+frame_count, :]
             start_pos += data.shape[0]
-            if self.midi_channel is not None and start_pos == self.duration and data.shape[0]>0:
+            if self.midi_channel is not None and start_pos >= self.duration:# and data.shape[0]>0:
                 audio_message.midi_messages.append(self.new_midi_note_off_message(data.shape[0]))
             if start_from is None:
                 self.lock.acquire()

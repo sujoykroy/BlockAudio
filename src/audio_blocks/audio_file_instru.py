@@ -61,6 +61,7 @@ class AudioFileInstru(AudioSamplesInstru):
 
     def set_filename(self, filename):
         self.filename = filename
+        self.samples = None
         if self.base_block:
             self.base_block.set_filename(filename)
         self.readjust_blocks()

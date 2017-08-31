@@ -218,7 +218,7 @@ class AudioBlock(object):
         self.music_note = note
 
     def set_midi_channel(self, channel):
-        self.midi_channel = channel
+        self.midi_channel = int(channel)
 
     def set_instru(self, instru):
         self.instru = instru

@@ -131,6 +131,7 @@ class FileInstruPage(object):
             self.pause_button.hide()
         self.audio_block.destroy()
         self.audio_block = self.instru.get_file_block()
+        self.audio_block.set_no_loop()
         self.block_viewer.set_block(self.audio_block)
         self.show_duration()
 

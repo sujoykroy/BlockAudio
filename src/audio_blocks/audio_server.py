@@ -11,7 +11,7 @@ class MidiThread(threading.Thread):
     def __init__(self):
         super(MidiThread, self).__init__()
         self.midi_queue = Queue.PriorityQueue()
-        self.midi_output = mido.open_output(name="DAWpy", virtual=True)
+        self.midi_output = mido.open_output(name="BlockAudio", virtual=True)
         self.should_exit = False
         self.paused = False
         self.start()
@@ -29,7 +29,7 @@ class MidiThread(threading.Thread):
                     if item[0]<=time.time():
                         self.midi_output.send(item[1])
                         item = None
-            time.sleep(.1)
+            time.sleep(.01)
 
     def close(self):
         self.should_exit = True
@@ -68,6 +68,8 @@ class AudioServer(threading.Thread):
                 continue
             for j in xrange(host_api_info["deviceCount"]):
                 device_info = self.pa_manager.get_device_info_by_host_api_device_index(i, j)
+                if device_info["maxOutputChannels"]<2:
+                    continue
                 self.output_device_index = device_info["index"]
 
         self.audio_queue = Queue.Queue()
