@@ -99,7 +99,7 @@ class AudioSamplesBlock(AudioBlock):
             if self.midi_channel is not None and start_pos == 0:
                 audio_message.midi_messages.append(self.new_midi_note_on_message(0))
             if start_pos>=self.duration:
-                data = numpy.zeros((0, AudioBlock.ChannelCount))
+                data = numpy.zeros((0, AudioBlock.ChannelCount), dtype=numpy.float32)
             else:
                 data = self.samples[start_pos: start_pos+frame_count, :]
             start_pos += data.shape[0]
