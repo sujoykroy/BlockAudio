@@ -4,8 +4,6 @@ from ..commons import Rect
 from ..commons import draw_utils
 from pointer_box import PointerBox
 import cairo
-import pango
-import pangocairo
 from ..audio_blocks import AudioSamplesBlock
 
 class AudioBlockBox(object):

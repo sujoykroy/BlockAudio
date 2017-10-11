@@ -1,6 +1,7 @@
 from colors import Color
 from rect import Rect
-import pango, pangocairo, cairo, math
+import cairo, math
+from gi.repository import Pango, PangoCairo
 
 def set_default_line_style(ctx):
     ctx.set_line_cap(cairo.LINE_CAP_ROUND)
@@ -56,18 +57,20 @@ def draw_text(ctx, text,
               text_color=None, back_color=None, border_color=None, border_width=1,
               padding=0, font_name=None, pre_draw=None):
 
-    pangocairo_context = pangocairo.CairoContext(ctx)
-    pangocairo_context.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
-
-    layout = pangocairo_context.create_layout()
-    font = pango.FontDescription(font_name)
-    layout.set_wrap(pango.WRAP_WORD)
+    layout = PangoCairo.create_layout(ctx)
+    font = Pango.FontDescription.from_string(font_name)
+    layout.set_wrap(Pango.WrapMode(0))
     layout.set_font_description(font)
-    layout.set_alignment(pango.ALIGN_LEFT)
+    layout.set_alignment(Pango.Alignment(0))
 
     layout.set_markup(text)
 
-    l, t, w, h = layout.get_pixel_extents()[1]
+    text_rect = layout.get_pixel_extents()[1]
+    l = text_rect.x
+    t = text_rect.y
+    w= text_rect.width
+    h = text_rect.height
+
     scale_x = 1
     scale_y = 1
     if width:
@@ -75,7 +78,7 @@ def draw_text(ctx, text,
             if fit_width:
                 scale_x = width/float(w)
         else:
-            layout.set_width(int(width*pango.SCALE))
+            layout.set_width(int(width*Pango.SCALE))
             #w = width
     else:
         width = w
@@ -130,9 +133,7 @@ def draw_text(ctx, text,
 
     ctx.move_to(padding, padding)
     ctx.scale(scale_x, scale_y)
-    pangocairo_context.update_layout(layout)
-    pangocairo_context.show_layout(layout)
-
+    PangoCairo.show_layout(ctx, layout)
     ctx.restore()
 
     return Rect(x, y, w+2*padding, h+2*padding)

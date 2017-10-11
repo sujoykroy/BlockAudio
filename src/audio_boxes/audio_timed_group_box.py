@@ -1,7 +1,6 @@
 from audio_block_box import AudioBlockBox
 from ..audio_blocks.audio_timed_group import AudioTimedGroup
 from ..commons import draw_utils
-from expander_box import ExpanderBox
 
 class AudioTimedGroupBox(AudioBlockBox):
     def __init__(self, audio_block=None):
