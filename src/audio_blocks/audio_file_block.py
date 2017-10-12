@@ -1,4 +1,4 @@
-import time, numpy
+import time, numpy, os
 import moviepy.editor as movie_editor
 from audio_block import AudioBlock
 from audio_samples_block import AudioSamplesBlock
@@ -81,7 +81,18 @@ class AudioFileBlock(AudioSamplesBlock):
             self.set_sample_count(self.inclusive_duration)
             AudioFileBlockCache.Files[self.filename] = self
 
+
+    @staticmethod
+    def _blank_clip_make_frame(t):
+        if isinstance(t, int):
+            return [0.]*AudioBlock.ChannelCount
+        return numpy.zeros((len(t), AudioBlock.ChannelCount), dtype="float")
+
     def get_audio_clip(self):
+        if not os.path.isfile(self.filename):
+            audio_clip = movie_editor.AudioClip(self._blank_clip_make_frame, duration=1)
+            audio_clip = audio_clip.set_fps(AudioBlock.SampleRate)
+            return audio_clip
         audioclip = movie_editor.AudioFileClip(self.filename)
         if self.preload and audioclip.duration>self.MAX_DURATION_SECONDS:
             audioclip = audioclip.set_duration(self.MAX_DURATION_SECONDS)

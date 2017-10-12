@@ -47,6 +47,8 @@ class AudioFileInstru(AudioSamplesInstru):
         return AudioFileBlock(self.filename, self.sample_count)
 
     def get_duration_seconds(self):
+        if not os.path.isfile(self.filename):
+            return 0.
         clip = moviepy_editor.AudioFileClip(self.filename)
         return clip.duration
 
